@@ -1,0 +1,3978 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Horas</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #252a3a;
+    --accent: #4f8ef7;
+    --accent2: #7c5ef7;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --text: #e8ecf4;
+    --muted: #6b7592;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+  /* ---- LAYOUT ---- */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 100;
+  }
+  .main { margin-left: 240px; flex: 1; padding: 32px; }
+  /* ---- SIDEBAR ---- */
+  .logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .logo h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .logo small { display: block; color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  nav a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.15s;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+  }
+  nav a:hover { color: var(--text); background: var(--surface2); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(79,142,247,0.06); }
+  nav .icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px 0;
+    border-top: 1px solid var(--border);
+  }
+  .db-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .db-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  /* ---- VIEWS ---- */
+  .view { display: none; }
+  .view.active { display: block; }
+  /* ---- FATURAMENTO TABLE ---- */
+  .fat-wrap { overflow-x: auto; }
+  .fat-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
+  .fat-table th {
+    background: var(--surface2); color: var(--muted);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+    padding: 10px 14px; text-align: right; border-bottom: 2px solid var(--border);
+  }
+  .fat-table th:first-child { text-align: left; }
+  .fat-table td { padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .fat-table td:first-child { text-align: left; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 13px; color: var(--text); }
+  .fat-table tbody tr:hover { background: var(--surface2); }
+  .fat-table tbody tr.cur-month td:first-child { color: var(--accent); }
+  .fat-table tfoot td { font-weight: 700; font-family: 'Syne', sans-serif; font-size: 13px; border-top: 2px solid var(--border); background: var(--surface2); padding: 12px 14px; }
+  .fat-table tfoot td:first-child { text-align: left; }
+  .fat-table .zero { color: var(--muted); }
+  .fat-table .pos { color: var(--green); }
+  .fat-table .neg { color: var(--red); }
+  .fat-cfg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  @media(max-width:700px) { .fat-cfg { grid-template-columns: 1fr 1fr; } }
+  /* ---- PAGE HEADER (fixo ao rolar) ---- */
+  .page-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--bg);
+    padding: 20px 0 16px;
+    margin-top: -20px;
+  }
+  .page-header h2 { font-size: 24px; font-weight: 800; }
+  .page-header .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  /* ---- CARDS ---- */
+  .cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .card .label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+  .card .value { font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+  .card .sub-val { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .card.accent { border-color: rgba(79,142,247,0.3); background: rgba(79,142,247,0.05); }
+  .card.accent .value { color: var(--accent); }
+  .card.green { border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.05); }
+  .card.green .value { color: var(--green); }
+  /* ---- TABLE ---- */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--surface2);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 11px 16px; font-size: 13px; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-blue { background: rgba(79,142,247,0.15); color: var(--accent); }
+  .badge-green { background: rgba(52,211,153,0.15); color: var(--green); }
+  .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+  .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
+  .badge-gray { background: rgba(107,117,146,0.2); color: var(--muted); }
+  /* ---- FORM ---- */
+  .form-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+  .form-grid.cols2 { grid-template-columns: repeat(2,1fr); }
+  .form-grid.cols3 { grid-template-columns: repeat(3,1fr); }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+  .form-group input, .form-group select, .form-group textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: var(--accent);
+  }
+  .form-group select option { background: var(--surface2); }
+  .form-group textarea { resize: vertical; min-height: 120px; font-family: 'Syne', sans-serif; }
+  /* ---- BUTTONS ---- */
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3a78e8; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+  .btn-danger:hover { background: rgba(248,113,113,0.25); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-icon { padding: 6px 10px; border-radius: 6px; }
+  .actions { display: flex; gap: 8px; }
+  /* ---- FORM CARD ---- */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .form-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .form-footer { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
+  /* ---- MONTH SELECTOR ---- */
+  .month-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .month-bar > div { flex-basis: 100%; height: 0; }
+  .month-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .month-btn:hover { border-color: var(--accent); color: var(--text); }
+  .month-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  /* ---- WEEK OVERVIEW ---- */
+  .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin-bottom: 20px; }
+  .day-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .day-cell:hover { border-color: var(--accent); }
+  .day-cell.today { border-color: var(--accent); background: rgba(79,142,247,0.07); }
+  .day-cell.has-hours { border-color: rgba(52,211,153,0.4); }
+  .day-cell.weekend { opacity: 0.5; }
+  .day-cell .d-num { font-size: 14px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+  .day-cell .d-name { font-size: 9px; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+  .day-cell .d-hours { font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+  /* ---- SUMMARY MONTH ---- */
+  .month-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  /* ---- TOAST ---- */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 9999;
+    display: flex; align-items: center; gap: 8px;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: rgba(52,211,153,0.5); color: var(--green); }
+  #toast.error { border-color: rgba(248,113,113,0.5); color: var(--red); }
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 500px;
+    max-width: 95vw;
+    transform: scale(0.95);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: scale(1); }
+  .modal h3 { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+  .modal-footer { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+  /* ---- EMPTY STATE ---- */
+  .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+  /* ---- EXPORT SECTION ---- */
+  .export-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+  .export-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .export-card:hover { border-color: var(--accent); background: rgba(79,142,247,0.04); }
+  .export-card .eicon { font-size: 32px; margin-bottom: 10px; }
+  .export-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .export-card p { font-size: 12px; color: var(--muted); }
+  /* ---- CONFIG ---- */
+  .config-section { margin-bottom: 28px; }
+  .config-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .tag-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .tag .remove { cursor: pointer; color: var(--red); font-size: 14px; line-height: 1; }
+  .btn-icon-sm { padding: 4px 7px; border-radius: 6px; font-size: 12px; line-height: 1; }
+  /* ---- VIEW ONLY ---- */
+  .view-field { display: flex; flex-direction: column; gap: 4px; }
+  .view-field .vf-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+  .view-field .vf-value { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--text); font-family: 'JetBrains Mono', monospace; }
+  .view-field .vf-value.syne { font-family: 'Syne', sans-serif; }
+  .view-field .vf-value.desc { font-family: 'Syne', sans-serif; white-space: pre-wrap; word-break: break-word; line-height: 1.6; min-height: 80px; max-height: 220px; overflow-y: auto; }
+  .view-grid { display: grid; gap: 12px; margin-bottom: 16px; }
+  .view-grid.cols3 { grid-template-columns: repeat(3,1fr); }
+  .view-grid.cols2 { grid-template-columns: repeat(2,1fr); }
+  .view-accent .vf-value { color: var(--accent); font-weight: 700; }
+  .view-green  .vf-value { color: var(--green);  font-weight: 700; }
+  /* ---- RELATORIO CHART ---- */
+  .rel-bar-wrap { display:flex; align-items:flex-end; gap:6px; height:180px; padding-top:24px; min-width:600px; }
+  .rel-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:32px; }
+  .rel-bar { width:100%; max-width:48px; border-radius:4px 4px 0 0; background:var(--accent); transition:background .15s; position:relative; min-height:2px; }
+  .rel-bar-col:hover .rel-bar { background:var(--accent2); }
+  .rel-bar-val { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); margin-bottom:4px; white-space:nowrap; }
+  .rel-bar-label { font-size:10px; color:var(--muted); margin-top:6px; font-weight:600; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60px; }
+  .rel-bar-col.highlight .rel-bar { background:var(--green); }
+  .rel-bar-col.highlight .rel-bar-label { color:var(--green); }
+
+  /* ---- SCROLLBAR ---- */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  /* ---- HOURS CHART ---- */
+  .hours-chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding-top: 20px; }
+  .hours-chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: default; }
+  .hours-chart-bar {
+    width: 100%;
+    max-width: 36px;
+    background: var(--accent);
+    border-radius: 4px 4px 0 0;
+    transition: background 0.15s;
+    position: relative;
+    min-height: 2px;
+  }
+  .hours-chart-col:hover .hours-chart-bar { background: var(--accent2); }
+  .hours-chart-col.current .hours-chart-bar { background: var(--green); }
+  .hours-chart-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    white-space: nowrap;
+  }
+  .hours-chart-label { font-size: 11px; color: var(--muted); margin-top: 8px; font-weight: 600; }
+  .hours-chart-col.current .hours-chart-label { color: var(--green); }
+  .sep { height: 1px; background: var(--border); margin: 20px 0; }
+  .text-muted { color: var(--muted); }
+  .text-green { color: var(--green); }
+  .text-accent { color: var(--accent); }
+  .fw-bold { font-weight: 700; }
+  .mt-8 { margin-top: 8px; }
+  .flex { display: flex; align-items: center; gap: 10px; }
+  .ml-auto { margin-left: auto; }
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 900px) {
+    .sidebar { width: 200px; }
+    .main { margin-left: 200px; padding: 20px; }
+    .cards { grid-template-columns: repeat(2,1fr); }
+    .month-summary { grid-template-columns: repeat(2,1fr); }
+  }
+  /* ---- LOGIN / AUTH ---- */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+  }
+  #login-screen.hidden { display: none; }
+  .login-card {
+    width: 100%; max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+  }
+  .login-card .logo { padding: 0 0 24px; border: none; margin-bottom: 24px; text-align: center; }
+  .login-card .logo h1 { font-size: 26px; }
+  .login-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: 8px; padding: 4px; margin-bottom: 20px; }
+  .login-tab {
+    flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 700; color: var(--muted); transition: all .15s;
+  }
+  .login-tab.active { background: var(--accent); color: #fff; }
+  .login-card .form-group { margin-bottom: 14px; }
+  .login-card .btn { width: 100%; margin-top: 6px; }
+  #login-error {
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+    color: var(--red); border-radius: 8px; padding: 10px 12px; font-size: 12px;
+    margin-bottom: 14px; display: none;
+  }
+  #login-error.show { display: block; }
+  .login-loading { text-align: center; color: var(--muted); font-size: 13px; padding: 20px 0; }
+  /* ---- SYNC STATUS ---- */
+  .db-status.syncing .db-dot { background: var(--yellow); }
+  .db-status.offline .db-dot { background: var(--red); animation: none; }
+  .db-status.synced .db-dot { background: var(--green); }
+  .sidebar-footer .user-email {
+    font-size: 11px; color: var(--muted); margin-bottom: 8px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .btn-logout {
+    width: 100%; background: transparent; border: 1px solid var(--border);
+    color: var(--muted); padding: 7px; border-radius: 6px; font-size: 11px;
+    font-weight: 600; cursor: pointer; margin-top: 8px; transition: all .15s;
+  }
+  .btn-logout:hover { color: var(--red); border-color: rgba(248,113,113,0.4); }
+  /* ---- AUTOCOMPLETE CUSTOMIZADO ---- */
+  .ac-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 280px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 9999;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .ac-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 14px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border-bottom: 1px solid var(--border);
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.ac-active { background: rgba(79,142,247,0.12); }
+  .ac-cod {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    white-space: nowrap;
+    min-width: 72px;
+  }
+  .ac-nome {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  /* ---- CLIENTES VINCULADOS (tag-input) ---- */
+  .cli-tag-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    min-height: 44px;
+    cursor: text;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+  .cli-tag-box:focus-within { border-color: var(--accent); }
+  .cli-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(79,142,247,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(79,142,247,0.3);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .cli-tag-cod {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    opacity: 0.7;
+  }
+  .cli-tag-remove {
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.1s;
+    padding: 0 1px;
+  }
+  .cli-tag-remove:hover { opacity: 1; color: var(--red); }
+  .cli-tag-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    min-width: 140px;
+    flex: 1;
+    padding: 2px 4px;
+  }
+  .cli-tag-input::placeholder { color: var(--muted); }
+  .cli-tag-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 9999;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+  .cli-tag-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  .cli-tag-opt:last-child { border-bottom: none; }
+  .cli-tag-opt:hover, .cli-tag-opt.active { background: rgba(79,142,247,0.12); }
+  .cli-tag-opt-cod {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 64px;
+  }
+  .cli-tag-opt-nome { font-size: 13px; font-weight: 600; color: var(--text); }
+  .cli-tag-empty { padding: 16px 14px; color: var(--muted); font-size: 12px; text-align: center; }
+  .clientes-vinculados-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+</style>
+<script type="module">
+  // ============================================================
+  // FIREBASE — Auth (email/senha) + Firestore (sincronização do banco)
+  // ============================================================
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getAuth, onAuthStateChanged, signInWithEmailAndPassword,
+    createUserWithEmailAndPassword, signOut, sendPasswordResetEmail
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // ── CONFIG DO PROJETO FIREBASE ──────────────────────────────────────────
+  // (Console Firebase → ⚙ Configurações do projeto → Seus apps → SDK setup and configuration)
+  const firebaseConfig = {
+    apiKey: "AIzaSyCJzVbmhZLFfJI6qNWeCefx_5pDiEAZO-k",
+    authDomain: "controle-de-horas-be5d3.firebaseapp.com",
+    projectId: "controle-de-horas-be5d3",
+    storageBucket: "controle-de-horas-be5d3.firebasestorage.app",
+    messagingSenderId: "268212062993",
+    appId: "1:268212062993:web:d5f615fa80b5587ab45ab0",
+    measurementId: "G-97QCQRCFDS"
+  };
+
+  const firebaseApp = initializeApp(firebaseConfig);
+  const auth = getAuth(firebaseApp);
+  const firestore = getFirestore(firebaseApp);
+
+  // Expõe no escopo global (window) para o restante do app, que usa <script> clássico, poder usar
+  window.__firebase = {
+    auth, firestore, doc, getDoc, setDoc, onSnapshot,
+    onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+    signOut, sendPasswordResetEmail
+  };
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo">
+      <h1>Controle de <span style="color:var(--accent)">Horas</span></h1>
+      <small style="display:block;color:var(--muted);font-size:11px;font-family:'JetBrains Mono',monospace;margin-top:4px;"></small>
+    </div>
+
+    <div id="login-loading" class="login-loading">Conectando…</div>
+
+    <div id="login-form-wrap" style="display:none">
+      <div class="login-tabs">
+        <div class="login-tab active" id="tab-signin" onclick="setLoginTab('signin')">Entrar</div>
+        <div class="login-tab" id="tab-signup" onclick="setLoginTab('signup')">Criar conta</div>
+      </div>
+
+      <div id="login-error"></div>
+
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary" id="login-submit-btn" onclick="submitLogin()">Entrar</button>
+      <div style="text-align:center;margin-top:14px;">
+        <span style="font-size:12px;color:var(--accent);cursor:pointer;" onclick="esqueciSenha()">Esqueci minha senha</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app-root" style="display:none">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <h1>Controle de <span>Horas</span></h1>
+      <small></small>
+    </div>
+    <nav>
+      <a class="active" onclick="showView('dashboard')" data-view="dashboard">
+        <span class="icon">◈</span> Dashboard
+      </a>
+      <a onclick="showView('registros')" data-view="registros">
+        <span class="icon">▤</span> Registros
+      </a>
+      <a onclick="showView('clientes')" data-view="clientes">
+        <span class="icon">◎</span> Clientes
+      </a>
+      <a onclick="showView('consultoria')" data-view="consultoria">
+        <span class="icon">🧩</span> Consultoria
+      </a>
+      <a onclick="showView('faturamento')" data-view="faturamento">
+        <span class="icon">💰</span> Faturamento
+      </a>
+      <a onclick="showView('relatorios')" data-view="relatorios">
+        <span class="icon">📈</span> Relatórios
+      </a>
+      <a onclick="showView('exportar')" data-view="exportar">
+        <span class="icon">⬡</span> Exportar
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-email" id="sidebar-user-email"></div>
+      <div class="db-status synced" id="sync-status"><span class="db-dot"></span> <span id="sync-status-text">sincronizado</span></div>
+      <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-header">
+        <div><h2>Dashboard</h2><div class="sub">Visão geral do mês atual</div></div>
+      </div>
+      <div class="cards" id="dash-cards"></div>
+
+      <div class="form-card">
+        <h3>📅 Visão Mensal</h3>
+        <div class="month-bar" id="month-bar"></div>
+        <div class="month-summary" id="month-summary"></div>
+        <div class="week-grid" id="week-grid"></div>
+        <div class="table-wrap" id="dash-table-wrap"></div>
+      </div>
+    </div>
+
+    <!-- REGISTROS -->
+    <div class="view" id="view-registros">
+      <div class="page-header">
+        <div><h2>Registros</h2><div class="sub">Todos os apontamentos</div></div>
+        <div class="flex">
+          <div style="position:relative">
+            <input type="text" id="busca-cliente" placeholder="Buscar por cliente..." autocomplete="off"
+              oninput="acBuscaCliente(this.value);renderRegistros()"
+              onfocus="acBuscaCliente(this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-busca-cliente'),150)"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;width:200px">
+            <div id="ac-busca-cliente" class="ac-dropdown" style="display:none"></div>
+          </div>
+          <select id="filtro-ano" onchange="renderRegistros()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;">
+            <option value="">Todos os anos</option>
+          </select>
+          <select id="filtro-mes" onchange="renderRegistros()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;">
+            <option value="">Todos os meses</option>
+          </select>
+          <button class="btn btn-primary" onclick="abrirModalApontamento()">+ Novo Apontamento</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div id="reg-totais" style="display:flex;gap:12px;margin-bottom:16px"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th><th>Dia</th><th>P1 Início</th><th>P1 Fim</th><th>P2 Início</th><th>P2 Fim</th><th>Translado</th><th>Total</th><th>Extra</th><th>Aliment.</th><th>Transp.</th><th>Clientes</th><th>Obs</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-registros"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="view" id="view-clientes">
+      <div class="page-header">
+        <div><h2>Clientes</h2><div class="sub">Cadastro e histórico de clientes</div></div>
+        <button class="btn btn-primary" onclick="abrirFormCliente()">+ Novo Cliente</button>
+      </div>
+
+      <div class="table-wrap" style="margin-bottom:24px">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th><th>Cliente</th><th>Contato</th><th>E-mail</th><th>Telefone</th><th>Valor/h</th><th>Status</th><th>Obs</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-cliente-lista"></tbody>
+        </table>
+      </div>
+
+      <div class="form-card">
+        <h3>📊 Histórico de Apontamentos por Cliente</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Cliente</th><th>Dias trabalhados</th><th>Horas totais</th><th>Último registro</th></tr>
+            </thead>
+            <tbody id="tbody-clientes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL FORM CLIENTE (centralizado no meio da tela) -->
+    <div class="modal-overlay" id="form-cliente-overlay">
+      <div class="modal" style="width:680px;max-width:96vw">
+        <h3 id="form-cliente-titulo">✦ Novo Cliente</h3>
+        <input type="hidden" id="cli-id">
+        <div class="form-grid cols2">
+          <div class="form-group">
+            <label>Código</label>
+            <input type="text" id="cli-codigo" placeholder="ex: CLI-001">
+          </div>
+          <div class="form-group">
+            <label>Nome *</label>
+            <input type="text" id="cli-nome" placeholder="ex: Mazzaferro">
+          </div>
+          <div class="form-group">
+            <label>Contato (pessoa)</label>
+            <input type="text" id="cli-contato" placeholder="ex: João Silva">
+          </div>
+          <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="cli-email" placeholder="contato@empresa.com">
+          </div>
+          <div class="form-group">
+            <label>Telefone</label>
+            <input type="text" id="cli-telefone" placeholder="(11) 99999-9999">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="cli-ativo">
+              <option value="1">Ativo</option>
+              <option value="0">Inativo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Consultoria</label>
+            <select id="cli-consultoria">
+              <option value="">— Nenhuma —</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:16px">
+          <label>Observações</label>
+          <textarea id="cli-obs" placeholder="Notas sobre o cliente, condições, endereço, etc."></textarea>
+        </div>
+        <div class="form-footer">
+          <button class="btn btn-primary" onclick="salvarCliente()">Salvar Cliente</button>
+          <button class="btn btn-secondary" onclick="fecharFormCliente()">Cancelar</button>
+          <span id="cli-form-msg" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSULTORIA -->
+    <div class="view" id="view-consultoria">
+      <div class="page-header">
+        <div><h2>Consultoria</h2><div class="sub">Cadastro de consultorias</div></div>
+        <button class="btn btn-primary" onclick="abrirFormConsultoria()">+ Nova Consultoria</button>
+      </div>
+
+      <div class="table-wrap" style="margin-bottom:24px">
+        <table>
+          <thead>
+            <tr>
+              <th>Código</th><th>Nome</th><th>Contato</th><th>E-mail</th><th>Telefone</th><th>Valor/h</th><th>Status</th><th>Clientes</th><th>Obs</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-consultoria-lista"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MODAL FORM CONSULTORIA -->
+    <div class="modal-overlay" id="form-consultoria-overlay">
+      <div class="modal" style="width:680px;max-width:96vw">
+        <h3 id="form-consultoria-titulo">✦ Nova Consultoria</h3>
+        <input type="hidden" id="con-id">
+        <div class="form-grid cols2">
+          <div class="form-group">
+            <label>Código</label>
+            <input type="text" id="con-codigo" placeholder="ex: CON-001">
+          </div>
+          <div class="form-group">
+            <label>Nome *</label>
+            <input type="text" id="con-nome" placeholder="ex: Consultoria XYZ">
+          </div>
+          <div class="form-group">
+            <label>Contato (pessoa)</label>
+            <input type="text" id="con-contato" placeholder="ex: João Silva">
+          </div>
+          <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="con-email" placeholder="contato@empresa.com">
+          </div>
+          <div class="form-group">
+            <label>Telefone</label>
+            <input type="text" id="con-telefone" placeholder="(11) 99999-9999">
+          </div>
+          <div class="form-group">
+            <label>Valor hora específico (R$)</label>
+            <input type="number" id="con-valor-hora" min="0" step="0.01" placeholder="deixe vazio para usar o padrão">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="con-ativo">
+              <option value="1">Ativo</option>
+              <option value="0">Inativo</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:16px">
+          <label>Observações</label>
+          <textarea id="con-obs" placeholder="Notas sobre a consultoria, condições, endereço, etc."></textarea>
+        </div>
+        <div class="form-footer">
+          <button class="btn btn-primary" onclick="salvarConsultoria()">Salvar</button>
+          <button class="btn btn-secondary" onclick="fecharFormConsultoria()">Cancelar</button>
+          <span id="con-form-msg" style="font-size:12px;color:var(--muted);margin-left:8px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATÓRIOS -->
+    <div class="view" id="view-relatorios">
+      <div class="page-header">
+        <div><h2>Relatórios</h2><div class="sub" id="rel-subtitle">Análise detalhada dos seus dados</div></div>
+        <div class="flex" style="gap:8px;flex-wrap:wrap">
+          <select id="rel-tipo" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;">
+            <option value="mensal">Por Mês</option>
+            <option value="cliente">Por Cliente</option>
+            <option value="diario">Diário Detalhado</option>
+          </select>
+          <select id="rel-ano" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;"></select>
+          <select id="rel-mes-filtro" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;">
+            <option value="">Todos os meses</option>
+          </select>
+          <select id="rel-cliente-filtro" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;min-width:160px">
+            <option value="">Todos os clientes</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tabela de dados -->
+      <div class="form-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 id="rel-table-title" style="margin-bottom:0">📋 Detalhe</h3>
+          <button class="btn btn-secondary btn-sm" onclick="exportarRelatorioCSV()">⬇ Exportar CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="rel-thead"></thead>
+            <tbody id="rel-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PDF Mensal -->
+      <div class="form-card">
+        <h3>🧾 Relatório por Período (PDF)</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="form-group">
+            <label>Data De</label>
+            <input type="date" id="pdf-data-de" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%">
+          </div>
+          <div class="form-group">
+            <label>Data Até</label>
+            <input type="date" id="pdf-data-ate" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%">
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Cliente De</label>
+            <input type="text" id="pdf-cli-de" placeholder="nome ou código..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acPdfCli('pdf-cli-de','ac-pdf-cli-de',this.value)"
+              onfocus="acPdfCli('pdf-cli-de','ac-pdf-cli-de',this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-pdf-cli-de'),150)">
+            <div id="ac-pdf-cli-de" class="ac-dropdown" style="display:none"></div>
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Cliente Até</label>
+            <input type="text" id="pdf-cli-ate" placeholder="nome ou código..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acPdfCli('pdf-cli-ate','ac-pdf-cli-ate',this.value)"
+              onfocus="acPdfCli('pdf-cli-ate','ac-pdf-cli-ate',this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-pdf-cli-ate'),150)">
+            <div id="ac-pdf-cli-ate" class="ac-dropdown" style="display:none"></div>
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Consultoria</label>
+            <input type="text" id="pdf-consultoria-input" placeholder="código ou nome..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acPdfConsultoria(this.value)"
+              onfocus="acPdfConsultoria(this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-pdf-consultoria'),150)">
+            <input type="hidden" id="pdf-consultoria">
+            <div id="ac-pdf-consultoria" class="ac-dropdown" style="display:none"></div>
+          </div>
+        </div>
+        <div class="form-footer">
+          <button class="btn btn-primary" onclick="gerarRelatorioPDF()">Gerar PDF</button>
+        </div>
+      </div>
+
+      <!-- Impressão em lote de OS -->
+      <div class="form-card">
+        <h3>🖨️ Impressão de OS em Lote</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="form-group">
+            <label>Data De</label>
+            <input type="date" id="os-data-de" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%" oninput="previewOSLote()">
+          </div>
+          <div class="form-group">
+            <label>Data Até</label>
+            <input type="date" id="os-data-ate" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%" oninput="previewOSLote()">
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Cliente De</label>
+            <input type="text" id="os-cli-de" placeholder="nome ou código..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acPdfCli('os-cli-de','ac-os-cli-de',this.value);previewOSLote()"
+              onfocus="acPdfCli('os-cli-de','ac-os-cli-de',this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-os-cli-de'),150)">
+            <div id="ac-os-cli-de" class="ac-dropdown" style="display:none"></div>
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Cliente Até</label>
+            <input type="text" id="os-cli-ate" placeholder="nome ou código..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acPdfCli('os-cli-ate','ac-os-cli-ate',this.value);previewOSLote()"
+              onfocus="acPdfCli('os-cli-ate','ac-os-cli-ate',this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-os-cli-ate'),150)">
+            <div id="ac-os-cli-ate" class="ac-dropdown" style="display:none"></div>
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Consultoria</label>
+            <input type="text" id="os-consultoria-input" placeholder="código ou nome..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acOsConsultoria(this.value)"
+              onfocus="acOsConsultoria(this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-os-consultoria'),150)">
+            <input type="hidden" id="os-consultoria">
+            <div id="ac-os-consultoria" class="ac-dropdown" style="display:none"></div>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button class="btn btn-primary" onclick="imprimirOSLote()">🖨️ Gerar PDF</button>
+        </div>
+      </div>
+
+      <!-- Relatório de Apontamentos (lista) em PDF -->
+      <div class="form-card">
+        <h3>📋 Relatório de Apontamentos (PDF)</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+          <div class="form-group">
+            <label>Data De</label>
+            <input type="date" id="ap-data-de" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%">
+          </div>
+          <div class="form-group">
+            <label>Data Até</label>
+            <input type="date" id="ap-data-ate" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%">
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Cliente De</label>
+            <input type="text" id="ap-cli-de" placeholder="nome ou código..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acPdfCli('ap-cli-de','ac-ap-cli-de',this.value)"
+              onfocus="acPdfCli('ap-cli-de','ac-ap-cli-de',this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-ap-cli-de'),150)">
+            <div id="ac-ap-cli-de" class="ac-dropdown" style="display:none"></div>
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Cliente Até</label>
+            <input type="text" id="ap-cli-ate" placeholder="nome ou código..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acPdfCli('ap-cli-ate','ac-ap-cli-ate',this.value)"
+              onfocus="acPdfCli('ap-cli-ate','ac-ap-cli-ate',this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-ap-cli-ate'),150)">
+            <div id="ac-ap-cli-ate" class="ac-dropdown" style="display:none"></div>
+          </div>
+          <div class="form-group" style="position:relative">
+            <label>Consultoria</label>
+            <input type="text" id="ap-consultoria-input" placeholder="código ou nome..." autocomplete="off"
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%"
+              oninput="acApConsultoria(this.value)"
+              onfocus="acApConsultoria(this.value)"
+              onblur="setTimeout(()=>fecharAc('ac-ap-consultoria'),150)">
+            <input type="hidden" id="ap-consultoria">
+            <div id="ac-ap-consultoria" class="ac-dropdown" style="display:none"></div>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button class="btn btn-primary" onclick="gerarRelatorioApontamentosPDF()">📋 Gerar PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORTAR -->
+    <div class="view" id="view-exportar">
+      <div class="page-header">
+        <div><h2>Exportar</h2><div class="sub">Baixe seus dados</div></div>
+      </div>
+
+      <div class="export-grid">
+        <div class="export-card" onclick="exportarJSON()">
+          <div class="eicon">📦</div>
+          <h4>Exportar JSON</h4>
+          <p>Backup completo do banco de dados local</p>
+        </div>
+        <div class="export-card" onclick="exportarCSV()">
+          <div class="eicon">📊</div>
+          <h4>Exportar CSV</h4>
+          <p>Abrir no Excel ou Google Sheets</p>
+        </div>
+        <div class="export-card" onclick="importarJSON()">
+          <div class="eicon">📥</div>
+          <h4>Importar JSON</h4>
+          <p>Restaurar backup anterior</p>
+        </div>
+        <div class="export-card" onclick="limparBanco()">
+          <div class="eicon">🗑️</div>
+          <h4>Limpar Banco</h4>
+          <p style="color:var(--red)">Remove todos os registros</p>
+        </div>
+      </div>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importarArquivo(event)">
+    </div>
+
+    <!-- CONFIG -->
+    <!-- FATURAMENTO ANUAL -->
+    <div class="view" id="view-faturamento">
+      <div class="page-header">
+        <div><h2>Faturamento Anual</h2><div class="sub" id="fat-subtitle"></div></div>
+        <div class="flex" style="gap:8px;align-items:center">
+          <button class="btn btn-secondary btn-sm" onclick="fatAno--; renderFaturamento()">‹</button>
+          <span id="fat-ano-label" style="font-weight:700;font-size:16px;min-width:48px;text-align:center"></span>
+          <button class="btn btn-secondary btn-sm" onclick="fatAno++; renderFaturamento()">›</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirFatParams()" title="Parâmetros do Cálculo" style="font-size:16px;padding:6px 10px">⚙️</button>
+        </div>
+      </div>
+
+      <div class="cards" id="fat-cards" style="grid-template-columns:repeat(4,1fr)"></div>
+
+      <div class="form-card">
+        <div class="fat-wrap">
+          <table class="fat-table" id="fat-table">
+            <thead>
+              <tr>
+                <th>DATA</th>
+                <th>Horas Mês</th>
+                <th>Valor Hora</th>
+                <th>Faturamento</th>
+                <th>Valor Imposto</th>
+                <th>Contador</th>
+                <th>GPS</th>
+                <th>Alimentação</th>
+                <th>Transporte</th>
+                <th>Líquido</th>
+              </tr>
+            </thead>
+            <tbody id="fat-tbody"></tbody>
+            <tfoot id="fat-tfoot"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+  </main>
+</div>
+
+<!-- MODAL PARÂMETROS FATURAMENTO -->
+<div class="modal-overlay" id="fat-params-overlay" onclick="if(event.target===this)fecharFatParams()">
+  <div class="modal" style="width:480px;max-width:96vw">
+    <h3>⚙️ Parâmetros do Cálculo</h3>
+    <div class="form-grid cols2" style="margin-top:16px">
+      <div class="form-group">
+        <label>Valor Hora (R$)</label>
+        <input type="number" id="fat-vh" min="0" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label>% Imposto</label>
+        <input type="number" id="fat-imp" min="0" max="100" step="0.1" placeholder="6">
+      </div>
+      <div class="form-group">
+        <label>Custo Contador (R$/mês)</label>
+        <input type="number" id="fat-contador" min="0" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label>GPS (R$/mês)</label>
+        <input type="number" id="fat-gps" min="0" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label>Outros descontos (R$/mês)</label>
+        <input type="number" id="fat-outros" min="0" step="0.01" placeholder="0,00">
+      </div>
+    </div>
+    <div class="form-footer" style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="fecharFatParams()">Cancelar</button>
+      <button class="btn btn-primary" onclick="aplicarFatParams()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO APONTAMENTO -->
+<div class="modal-overlay" id="modal-apontamento-overlay">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <h3 id="f-modal-titulo">✦ Novo Apontamento</h3>
+    <input type="hidden" id="f-edit-id">
+    <!-- Linha 1: Data + Código + Cliente -->
+    <div style="display:grid;grid-template-columns:150px 130px 1fr;gap:12px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" id="f-data">
+      </div>
+      <div class="form-group" style="position:relative">
+        <label>Código</label>
+        <input type="text" id="f-codigo" placeholder="ex: CLI-001" autocomplete="off"
+          oninput="acCodigo(this.value)" onfocus="acCodigo(this.value)" onblur="setTimeout(()=>fecharAc('ac-codigo'),150)">
+        <div id="ac-codigo" class="ac-dropdown" style="display:none"></div>
+      </div>
+      <div class="form-group" style="position:relative">
+        <label>Cliente / Descrição</label>
+        <input type="text" id="f-clientes" placeholder="ex: Mazzaferro" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Início Período 1</label>
+        <input type="time" id="f-p1-inicio" value="09:00">
+      </div>
+      <div class="form-group">
+        <label>Término Período 1</label>
+        <input type="time" id="f-p1-fim" value="12:00">
+      </div>
+      <div class="form-group">
+        <label>Translado</label>
+        <input type="time" id="f-translado" value="00:00">
+      </div>
+      <div class="form-group">
+        <label>Início Período 2</label>
+        <input type="time" id="f-p2-inicio" value="13:00">
+      </div>
+      <div class="form-group">
+        <label>Término Período 2</label>
+        <input type="time" id="f-p2-fim" value="18:00">
+      </div>
+      <div class="form-group">
+        <label>Total (calculado)</label>
+        <input type="text" id="f-total" readonly style="opacity:0.6;cursor:default">
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div class="form-grid cols2">
+      <div class="form-group">
+        <label>Alimentação (R$)</label>
+        <input type="number" id="f-alimentacao" value="0" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Transporte (R$)</label>
+        <input type="number" id="f-transporte" value="0" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:14px">
+      <label>Descrição dos Serviços Prestados</label>
+      <textarea id="f-desc" placeholder="Descreva detalhadamente os serviços realizados no atendimento..." style="min-height:140px;white-space:pre-wrap;word-break:break-word;line-height:1.6"></textarea>
+    </div>
+    <div class="form-group" style="margin-top:14px">
+      <label>Observações</label>
+      <input type="text" id="f-obs" placeholder="ex: FERIADO, FÉRIAS, ok...">
+    </div>
+    <div class="modal-footer" style="justify-content:flex-end;align-items:center;gap:10px;margin-top:20px">
+      <span class="mono" style="font-size:11px;color:var(--muted)">Ctrl+Enter para salvar</span>
+      <button class="btn btn-secondary" onclick="fecharModalApontamento()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarApontamento()">Salvar Apontamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIÇÃO -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" style="width:720px;max-width:96vw">
+    <h3>✦ Alterar Apontamento</h3>
+    <input type="hidden" id="edit-id">
+    <!-- Linha 1: Data + Código + Cliente -->
+    <div style="display:grid;grid-template-columns:150px 130px 1fr;gap:12px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" id="edit-data">
+      </div>
+      <div class="form-group" style="position:relative">
+        <label>Código</label>
+        <input type="text" id="edit-codigo" placeholder="ex: CLI-001" autocomplete="off"
+          oninput="acCodigoEdit(this.value)" onfocus="acCodigoEdit(this.value)" onblur="setTimeout(()=>fecharAc('ac-edit-codigo'),150)">
+        <div id="ac-edit-codigo" class="ac-dropdown" style="display:none"></div>
+      </div>
+      <div class="form-group">
+        <label>Cliente / Descrição</label>
+        <input type="text" id="edit-clientes" placeholder="ex: Mazzaferro" autocomplete="off">
+      </div>
+    </div>
+    <!-- Linha 2: Horários -->
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Início Período 1</label>
+        <input type="time" id="edit-p1i" oninput="atualizarTotalEdit()">
+      </div>
+      <div class="form-group">
+        <label>Término Período 1</label>
+        <input type="time" id="edit-p1f" oninput="atualizarTotalEdit()">
+      </div>
+      <div class="form-group">
+        <label>Translado</label>
+        <input type="time" id="edit-tsl" oninput="atualizarTotalEdit()">
+      </div>
+      <div class="form-group">
+        <label>Início Período 2</label>
+        <input type="time" id="edit-p2i" oninput="atualizarTotalEdit()">
+      </div>
+      <div class="form-group">
+        <label>Término Período 2</label>
+        <input type="time" id="edit-p2f" oninput="atualizarTotalEdit()">
+      </div>
+      <div class="form-group">
+        <label>Total (calculado)</label>
+        <input type="text" id="edit-total" readonly style="opacity:0.6;cursor:default">
+      </div>
+    </div>
+    <div class="sep"></div>
+    <!-- Linha 3: Valores -->
+    <div class="form-grid cols2">
+      <div class="form-group"><label>Alimentação (R$)</label><input type="number" id="edit-alim" min="0" step="0.01"></div>
+      <div class="form-group"><label>Transporte (R$)</label><input type="number" id="edit-transp" min="0" step="0.01"></div>
+    </div>
+    <!-- Descrição dos Serviços -->
+    <div class="form-group" style="margin-top:14px">
+      <label>Descrição dos Serviços Prestados</label>
+      <textarea id="edit-desc" placeholder="Descreva detalhadamente os serviços realizados no atendimento..." style="min-height:140px;white-space:pre-wrap;word-break:break-word;line-height:1.6"></textarea>
+    </div>
+    <!-- Observações -->
+    <div class="form-group" style="margin-top:14px">
+      <label>Observações</label>
+      <input type="text" id="edit-obs" placeholder="ex: FERIADO, FÉRIAS, ok...">
+    </div>
+    <!-- Rodapé: botões -->
+    <div class="modal-footer" style="justify-content:flex-end;align-items:center;gap:10px;margin-top:20px">
+      <span class="mono" style="font-size:11px;color:var(--muted)">Ctrl+Enter para salvar</span>
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEdicao()">Salvar Apontamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZAR -->
+<div class="modal-overlay" id="modal-visualizar-overlay">
+  <div class="modal" style="width:720px;max-width:96vw;max-height:90vh;display:flex;flex-direction:column">
+    <h3 style="flex-shrink:0">👁️ Visualizar Apontamento</h3>
+    <div id="visualizar-content" style="overflow-y:auto;flex:1;padding-right:4px"></div>
+    <div class="modal-footer" style="justify-content:flex-end;margin-top:20px;flex-shrink:0">
+      <button class="btn btn-secondary" onclick="fecharVisualizar()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirm-overlay">
+  <div class="modal" style="width:400px">
+    <h3 id="confirm-title">Confirmar ação</h3>
+    <p id="confirm-msg" style="color:var(--muted);font-size:13px;line-height:1.5"></p>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="confirm-cancel">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-ok">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// BANCO DE DADOS LOCAL (localStorage como JSON) + SYNC FIREBASE
+// ============================================================
+const DB_KEY = 'eones_horas_db';
+
+let db = {
+  registros: [],
+  clientes: ['Mazzaferro', 'Fernandes', 'Fiação'],
+  consultorias: [],
+  config: { nome: '', empresa: '', horasDiarias: 8, valorHora: 0 }
+};
+
+function carregarDB() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) db = JSON.parse(raw);
+  } catch(e) {}
+  if (!Array.isArray(db.consultorias)) db.consultorias = [];
+  migrarClientes();
+}
+
+// Converte o formato antigo (array de strings) para o novo cadastro completo
+// de clientes (array de objetos). Mantém compatibilidade com bancos já salvos.
+function migrarClientes() {
+  if (!Array.isArray(db.clientes)) db.clientes = [];
+  let mudou = false;
+  db.clientes = db.clientes.map(c => {
+    if (typeof c === 'string') {
+      mudou = true;
+      return { id: gerarIdCliente(), nome: c, codigo: '', contato: '', email: '', telefone: '', valorHora: null, obs: '', ativo: true };
+    }
+    return c;
+  });
+  if (mudou) salvarDB();
+}
+
+function gerarIdCliente() {
+  return 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+function salvarDB() {
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+  agendarSyncFirebase();
+}
+
+// ── SINCRONIZAÇÃO COM FIRESTORE ──────────────────────────────────────────
+// Espelha o objeto `db` inteiro em users/{uid} no Firestore. Mantém o
+// localStorage como cache local (funciona offline); ao reconectar/logar,
+// o Firestore é a fonte de verdade entre dispositivos.
+let _fbUser = null;          // usuário autenticado atual (objeto do Firebase Auth)
+let _fbUnsub = null;         // função para cancelar o listener onSnapshot anterior
+let _fbSyncTimer = null;     // debounce de escrita
+let _fbApplyingRemote = false; // true enquanto aplicamos uma mudança vinda do Firestore (evita loop de re-escrita)
+
+function setSyncStatus(estado) {
+  // estado: 'synced' | 'syncing' | 'offline'
+  const el = document.getElementById('sync-status');
+  const txt = document.getElementById('sync-status-text');
+  if (!el || !txt) return;
+  el.classList.remove('synced','syncing','offline');
+  el.classList.add(estado);
+  txt.textContent = estado === 'synced' ? 'sincronizado'
+                   : estado === 'syncing' ? 'sincronizando…'
+                   : 'sem conexão';
+}
+
+function agendarSyncFirebase() {
+  if (!_fbUser || _fbApplyingRemote) return; // sem login: só localStorage. Se a mudança veio do próprio Firestore, não reenvia.
+  setSyncStatus('syncing');
+  clearTimeout(_fbSyncTimer);
+  _fbSyncTimer = setTimeout(enviarDBParaFirestore, 600);
+}
+
+async function enviarDBParaFirestore() {
+  if (!_fbUser) return;
+  const fb = window.__firebase;
+  try {
+    await fb.setDoc(fb.doc(fb.firestore, 'users', _fbUser.uid), {
+      ...db,
+      _atualizadoEm: Date.now()
+    });
+    setSyncStatus('synced');
+  } catch (e) {
+    console.error('Erro ao sincronizar com Firebase:', e);
+    setSyncStatus('offline');
+  }
+}
+
+// Assina as mudanças do documento do usuário em tempo real (outros dispositivos, etc).
+function iniciarSyncFirestore(user) {
+  const fb = window.__firebase;
+  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+  const ref = fb.doc(fb.firestore, 'users', user.uid);
+  _fbUnsub = fb.onSnapshot(ref, snap => {
+    if (!snap.exists()) {
+      // Primeira vez deste usuário: sobe o banco local atual como ponto de partida.
+      enviarDBParaFirestore();
+      setSyncStatus('synced');
+      return;
+    }
+    const remoto = snap.data();
+    _fbApplyingRemote = true;
+    db = {
+      registros: remoto.registros || [],
+      clientes: remoto.clientes || [],
+      consultorias: remoto.consultorias || [],
+      config: remoto.config || { nome: '', empresa: '', horasDiarias: 8, valorHora: 0 }
+    };
+    migrarClientes();
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    renderAll();
+    atualizarDatalist();
+    _fbApplyingRemote = false;
+    setSyncStatus('synced');
+  }, err => {
+    console.error('Erro no listener do Firestore:', err);
+    setSyncStatus('offline');
+  });
+}
+
+// ============================================================
+// AUTENTICAÇÃO (login / criar conta / logout)
+// ============================================================
+let loginTabAtual = 'signin';
+
+function setLoginTab(tab) {
+  loginTabAtual = tab;
+  document.getElementById('tab-signin').classList.toggle('active', tab === 'signin');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  document.getElementById('login-submit-btn').textContent = tab === 'signin' ? 'Entrar' : 'Criar conta';
+  esconderErroLogin();
+}
+
+function mostrarErroLogin(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function esconderErroLogin() {
+  document.getElementById('login-error').classList.remove('show');
+}
+
+function traduzErroFirebase(err) {
+  const c = err && err.code || '';
+  const mapa = {
+    'auth/invalid-email': 'E-mail inválido.',
+    'auth/missing-password': 'Informe a senha.',
+    'auth/invalid-credential': 'E-mail ou senha incorretos.',
+    'auth/wrong-password': 'E-mail ou senha incorretos.',
+    'auth/user-not-found': 'Não existe conta com esse e-mail.',
+    'auth/email-already-in-use': 'Já existe uma conta com esse e-mail. Tente entrar.',
+    'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
+    'auth/too-many-requests': 'Muitas tentativas. Aguarde um pouco e tente de novo.',
+    'auth/network-request-failed': 'Falha de conexão. Verifique sua internet.'
+  };
+  return mapa[c] || ('Erro: ' + (err.message || 'tente novamente.'));
+}
+
+async function submitLogin() {
+  esconderErroLogin();
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  if (!email || !senha) { mostrarErroLogin('Preencha e-mail e senha.'); return; }
+
+  const fb = window.__firebase;
+  const btn = document.getElementById('login-submit-btn');
+  btn.disabled = true;
+  btn.textContent = loginTabAtual === 'signin' ? 'Entrando…' : 'Criando…';
+  try {
+    if (loginTabAtual === 'signin') {
+      await fb.signInWithEmailAndPassword(fb.auth, email, senha);
+    } else {
+      await fb.createUserWithEmailAndPassword(fb.auth, email, senha);
+    }
+    // onAuthStateChanged cuida do resto (mostrar o app, iniciar sync)
+  } catch (e) {
+    mostrarErroLogin(traduzErroFirebase(e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = loginTabAtual === 'signin' ? 'Entrar' : 'Criar conta';
+  }
+}
+
+async function esqueciSenha() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { mostrarErroLogin('Digite seu e-mail no campo acima para receber o link de redefinição.'); return; }
+  const fb = window.__firebase;
+  try {
+    await fb.sendPasswordResetEmail(fb.auth, email);
+    esconderErroLogin();
+    toast('E-mail de redefinição de senha enviado!', 'success');
+  } catch (e) {
+    mostrarErroLogin(traduzErroFirebase(e));
+  }
+}
+
+async function fazerLogout() {
+  const ok = await confirmDialog('Sair da conta? A sincronização será interrompida neste dispositivo (os dados continuam salvos na nuvem).', 'Sair', 'Sair');
+  if (!ok) return;
+  if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+  const fb = window.__firebase;
+  await fb.signOut(fb.auth);
+}
+
+function mostrarTelaLogin() {
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app-root').style.display = 'none';
+  document.getElementById('login-loading').style.display = 'none';
+  document.getElementById('login-form-wrap').style.display = '';
+}
+
+function mostrarApp(user) {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-root').style.display = '';
+  document.getElementById('sidebar-user-email').textContent = user.email || '';
+}
+
+// Liga o listener de autenticação assim que o módulo Firebase estiver pronto.
+function iniciarAuthListener() {
+  const fb = window.__firebase;
+  fb.onAuthStateChanged(fb.auth, user => {
+    if (user) {
+      _fbUser = user;
+      mostrarApp(user);
+      carregarDB();          // cache local (mostra algo imediatamente, mesmo antes do snapshot chegar)
+      initForm();
+      atualizarDatalist();
+      renderDashboard();
+      iniciarSyncFirestore(user); // assina o documento do usuário (tempo real)
+    } else {
+      _fbUser = null;
+      if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+      mostrarTelaLogin();
+    }
+  });
+}
+
+// A chamada que efetivamente liga o listener (iniciarAuthListener) fica no
+// final do arquivo, depois de TODAS as declarações de função/variável —
+// evita "Cannot access X before initialization" em qualquer variável usada
+// por renderDashboard/renderAll/etc, já que esse listener pode disparar de
+// forma síncrona em alguns ambientes.
+
+
+function timeToMin(t) {
+  if (!t || t === '00:00') return 0;
+  const [h,m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minToTime(m) {
+  const h = Math.floor(Math.abs(m) / 60);
+  const min = Math.abs(m) % 60;
+  return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+}
+
+// Versão com sinal, para saldos de horas extras/faltantes
+function minToTimeSigned(m) {
+  const sign = m < 0 ? '-' : '+';
+  return sign + minToTime(m);
+}
+
+function calcTotal(p1i, p1f, p2i, p2f, tsl) {
+  const p1 = Math.max(0, timeToMin(p1f) - timeToMin(p1i));
+  const p2 = Math.max(0, timeToMin(p2f) - timeToMin(p2i));
+  const tr = timeToMin(tsl);
+  return p1 + p2 + tr;
+}
+
+// Saldo de horas extras (positivo) ou faltantes (negativo) de um registro
+function calcExtra(r) {
+  const meta = (db.config.horasDiarias || 8) * 60;
+  const tot = calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl);
+  return tot - meta;
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('pt-BR');
+}
+
+function getDiaSemana(iso) {
+  const dias = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+  return dias[new Date(iso + 'T00:00:00').getDay()];
+}
+
+function getMesNome(num) {
+  const m = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  return m[num];
+}
+
+function getMesNomeFull(num) {
+  const m = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  return m[num];
+}
+
+function getISODate(date) {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function totalMinAno(ano) {
+  return db.registros
+    .filter(r => r.data.slice(0,4) === String(ano))
+    .reduce((a,r) => a + calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl), 0);
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  const navLink = document.querySelector(`[data-view="${name}"]`);
+  if (navLink) navLink.classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'registros') renderRegistros();
+  if (name === 'clientes') renderClientes();
+  if (name === 'consultoria') renderConsultoria();
+  if (name === 'exportar') initPdfSelects();
+  if (name === 'faturamento') { initFaturamento(); renderFaturamento(); }
+  if (name === 'relatorios') {
+    initRelatorios();
+    initPdfSelects();
+    // Datas padrão: mês atual
+    const hoje = getISODate(new Date());
+    const primeiroDia = hoje.slice(0,7) + '-01';
+    if (!document.getElementById('os-data-de').value)  document.getElementById('os-data-de').value  = primeiroDia;
+    if (!document.getElementById('os-data-ate').value) document.getElementById('os-data-ate').value = hoje;
+    previewOSLote();
+  }
+}
+
+function abrirModalApontamento() {
+  limparForm();
+  document.getElementById('f-edit-id').value = '';
+  document.getElementById('f-modal-titulo').textContent = '✦ Novo Apontamento';
+  document.getElementById('f-data').value = getISODate(new Date());
+  document.getElementById('modal-apontamento-overlay').classList.add('open');
+}
+
+function fecharModalApontamento() {
+  document.getElementById('modal-apontamento-overlay').classList.remove('open');
+}
+
+// ============================================================
+// CONFIRM DIALOG (substitui confirm() nativo)
+// ============================================================
+function confirmDialog(msg, title='Confirmar ação', okLabel='Confirmar') {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('confirm-overlay');
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-msg').textContent = msg;
+    const okBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    okBtn.textContent = okLabel;
+
+    function close(result) {
+      overlay.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlay);
+      resolve(result);
+    }
+    function onOk() { close(true); }
+    function onCancel() { close(false); }
+    function onOverlay(e) { if (e.target === overlay) close(false); }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlay);
+    overlay.classList.add('open');
+  });
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.className = `show ${type}`;
+  el.innerHTML = (type==='success'?'✓ ':'✕ ') + msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3000);
+}
+
+// ============================================================
+// FORMULÁRIO DE APONTAMENTO
+// ============================================================
+function initForm() {
+  const today = getISODate(new Date());
+  document.getElementById('f-data').value = today;
+  atualizarTotal();
+  atualizarDatalist();
+}
+
+function atualizarTotal() {
+  const p1i = document.getElementById('f-p1-inicio').value;
+  const p1f = document.getElementById('f-p1-fim').value;
+  const p2i = document.getElementById('f-p2-inicio').value;
+  const p2f = document.getElementById('f-p2-fim').value;
+  const tsl = document.getElementById('f-translado').value;
+  const total = calcTotal(p1i, p1f, p2i, p2f, tsl);
+  document.getElementById('f-total').value = minToTime(total) + 'h';
+}
+
+function atualizarTotalEdit() {
+  const p1i = document.getElementById('edit-p1i').value;
+  const p1f = document.getElementById('edit-p1f').value;
+  const p2i = document.getElementById('edit-p2i').value;
+  const p2f = document.getElementById('edit-p2f').value;
+  const tsl = document.getElementById('edit-tsl').value;
+  const total = calcTotal(p1i, p1f, p2i, p2f, tsl);
+  const el = document.getElementById('edit-total');
+  if (el) el.value = minToTime(total) + 'h';
+}
+
+['f-p1-inicio','f-p1-fim','f-p2-inicio','f-p2-fim','f-translado'].forEach(id => {
+  document.getElementById(id).addEventListener('input', atualizarTotal);
+});
+
+function atualizarDatalist() {
+  // mantido por compatibilidade — não faz nada (usamos ac customizado)
+}
+
+// ── AUTOCOMPLETE CUSTOMIZADO ────────────────────────────────────
+function clientesAtivos() {
+  return (db.clientes || []).filter(c => c.ativo !== false);
+}
+
+function fecharAc(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+function renderAcItems(containerId, itens, onSelect) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!itens.length) { el.style.display = 'none'; return; }
+  el.innerHTML = '';
+  itens.forEach((item) => {
+    const div = document.createElement('div');
+    div.className = 'ac-item';
+    div.innerHTML = `<span class="ac-cod">${item.codigo || '—'}</span><span class="ac-nome">${item.nome}</span>`;
+    div.addEventListener('mousedown', () => onSelect(item));
+    el.appendChild(div);
+  });
+  el.style.display = 'block';
+}
+
+function acCodigo(val) {
+  const q = val.trim().toLowerCase();
+  const lista = clientesAtivos()
+    .filter(c => !q || (c.codigo || '').toLowerCase().includes(q) || c.nome.toLowerCase().includes(q))
+    .sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+  renderAcItems('ac-codigo', lista, cli => {
+    document.getElementById('f-codigo').value = cli.codigo || '';
+    document.getElementById('f-clientes').value = cli.nome;
+    fecharAc('ac-codigo');
+  });
+}
+
+function acCliente(val) {
+  const q = val.trim().toLowerCase();
+  const lista = clientesAtivos()
+    .filter(c => !q || c.nome.toLowerCase().includes(q) || (c.codigo || '').toLowerCase().includes(q))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+  renderAcItems('ac-clientes', lista, cli => {
+    document.getElementById('f-clientes').value = cli.nome;
+    document.getElementById('f-codigo').value = cli.codigo || '';
+    fecharAc('ac-clientes');
+  });
+}
+
+// Autocomplete do campo busca de cliente na tela Registros
+function acBuscaCliente(val) {
+  const q = val.trim().toLowerCase();
+  const lista = clientesAtivos()
+    .filter(c => !q || (c.codigo || '').toLowerCase().includes(q) || c.nome.toLowerCase().includes(q))
+    .sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+  renderAcItems('ac-busca-cliente', lista, cli => {
+    document.getElementById('busca-cliente').value = cli.nome;
+    fecharAc('ac-busca-cliente');
+    renderRegistros();
+  });
+}
+
+// Autocomplete dos filtros de cliente no relatório PDF
+function acPdfCli(inputId, dropdownId, val) {
+  const q = val.trim().toLowerCase();
+  const lista = clientesAtivos()
+    .filter(c => !q || (c.codigo || '').toLowerCase().includes(q) || c.nome.toLowerCase().includes(q))
+    .sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+  renderAcItems(dropdownId, lista, cli => {
+    document.getElementById(inputId).value = cli.codigo || cli.nome;
+    fecharAc(dropdownId);
+  });
+}
+
+// legado (chamado em alguns lugares antigos)
+function preencherClientePorCodigo(valor) {}
+function preencherCodigoPorCliente(valor) {}
+
+// Atalho: Ctrl/Cmd + Enter salva o apontamento (quando o modal estiver aberto)
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    const overlayNovo = document.getElementById('modal-apontamento-overlay');
+    if (overlayNovo && overlayNovo.classList.contains('open')) {
+      e.preventDefault();
+      salvarApontamento();
+      return;
+    }
+    const overlayEdit = document.getElementById('modal-overlay');
+    if (overlayEdit && overlayEdit.classList.contains('open')) {
+      e.preventDefault();
+      salvarEdicao();
+    }
+  }
+});
+
+function limparForm() {
+  document.getElementById('f-codigo').value = '';
+  document.getElementById('f-clientes').value = '';
+  document.getElementById('f-obs').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-p1-inicio').value = '09:00';
+  document.getElementById('f-p1-fim').value = '12:00';
+  document.getElementById('f-p2-inicio').value = '13:00';
+  document.getElementById('f-p2-fim').value = '18:00';
+  document.getElementById('f-translado').value = '00:00';
+  document.getElementById('f-alimentacao').value = '0';
+  document.getElementById('f-transporte').value = '0';
+  const msg = document.getElementById('form-msg');
+  if (msg) msg.textContent = '';
+  atualizarTotal();
+}
+
+function periodoInvalido(ini, fim) {
+  // retorna true se fim < ini (e ambos preenchidos), indicando virada de dia não suportada
+  if (!ini || !fim) return false;
+  if (ini === '00:00' || fim === '00:00') return false;
+  return timeToMin(fim) < timeToMin(ini);
+}
+
+async function salvarApontamento() {
+  const data = document.getElementById('f-data').value;
+  if (!data) { toast('Informe a data','error'); return; }
+
+  const codigo = document.getElementById('f-codigo').value.trim();
+  if (!codigo) { toast('Informe o código do cliente','error'); document.getElementById('f-codigo').focus(); return; }
+
+  const p1i = document.getElementById('f-p1-inicio').value;
+  const p1f = document.getElementById('f-p1-fim').value;
+  const p2i = document.getElementById('f-p2-inicio').value;
+  const p2f = document.getElementById('f-p2-fim').value;
+
+  if (periodoInvalido(p1i, p1f) || periodoInvalido(p2i, p2f)) {
+    toast('Horário final menor que o inicial (turno após meia-noite não é suportado)', 'error');
+    return;
+  }
+
+  // Se f-edit-id estiver preenchido, estamos editando/movendo um registro
+  // existente (veio de copiarRegistro) — não deve criar um novo lançamento.
+  const editIdRaw = document.getElementById('f-edit-id').value;
+  const editId = editIdRaw ? parseInt(editIdRaw) : null;
+
+  const reg = {
+    id: editId || Date.now(),
+    data: data,
+    p1i: p1i,
+    p1f: p1f,
+    p2i: p2i,
+    p2f: p2f,
+    tsl: document.getElementById('f-translado').value,
+    alim: parseFloat(document.getElementById('f-alimentacao').value) || 0,
+    transp: parseFloat(document.getElementById('f-transporte').value) || 0,
+    codigo: document.getElementById('f-codigo').value.trim(),
+    clientes: document.getElementById('f-clientes').value.trim(),
+    obs: document.getElementById('f-obs').value.trim(),
+    desc: document.getElementById('f-desc').value.trim()
+  };
+
+  // Duplicata: mesmo dia + mesmo código de cliente (ignora o próprio registro
+  // em edição, senão ele sempre "colidiria" consigo mesmo quando a data não muda)
+  const codigoReg = reg.codigo.toLowerCase();
+  const idx = db.registros.findIndex(r =>
+    r.id !== reg.id &&
+    r.data === data &&
+    (r.codigo || '').toLowerCase() === codigoReg &&
+    codigoReg !== ''
+  );
+  // Fallback sem código: mesmo dia + mesmo nome de cliente
+  const idxNome = codigoReg === '' ? db.registros.findIndex(r =>
+    r.id !== reg.id &&
+    r.data === data &&
+    (r.clientes || '').toLowerCase() === reg.clientes.toLowerCase() &&
+    reg.clientes !== ''
+  ) : -1;
+
+  const idxDup = idx >= 0 ? idx : idxNome;
+  if (idxDup >= 0) {
+    const ok = await confirmDialog('Já existe um apontamento para este cliente nesta data. Deseja substituir?', 'Substituir registro', 'Substituir');
+    if (!ok) return;
+    reg.id = db.registros[idxDup].id;
+    db.registros[idxDup] = reg;
+    // Se estávamos movendo outro registro (edit-id) para esta data e ela já
+    // tinha um lançamento diferente, o registro original precisa ser removido
+    // para não ficar duplicado.
+    if (editId !== null && editId !== reg.id) {
+      const oldIdx = db.registros.findIndex(r => r.id === editId);
+      if (oldIdx >= 0) db.registros.splice(oldIdx, 1);
+    }
+  } else if (editId !== null) {
+    const oldIdx = db.registros.findIndex(r => r.id === editId);
+    if (oldIdx >= 0) {
+      db.registros[oldIdx] = reg;
+    } else {
+      // segurança: registro original não encontrado, evita perder os dados
+      db.registros.push(reg);
+    }
+  } else {
+    db.registros.push(reg);
+  }
+
+  document.getElementById('f-edit-id').value = '';
+  db.registros.sort((a,b) => a.data.localeCompare(b.data));
+  salvarDB();
+  toast('Apontamento salvo com sucesso!');
+  fecharModalApontamento();
+  // atualiza registros se estiver na view
+  const viewReg = document.getElementById('view-registros');
+  if (viewReg && viewReg.classList.contains('active')) renderRegistros();
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+let selectedMonth = new Date().getMonth();
+let selectedYear = new Date().getFullYear();
+
+function renderDashboard() {
+
+  const totalMin = totalMinAno(selectedYear);
+  const regs = db.registros.filter(r => r.data.slice(0,4) === String(selectedYear));
+  const diasTrab = regs.filter(r => calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl) > 0).length;
+
+  document.getElementById('dash-cards').innerHTML = '';
+  document.getElementById('dash-cards').style.display = 'none';
+
+  renderMonthBar();
+  renderMonthView(selectedMonth);
+}
+
+function renderHoursChart() {
+  document.getElementById('chart-year-label').textContent = selectedYear;
+  const meses = [];
+  for (let m = 0; m < 12; m++) {
+    const regs = db.registros.filter(r => {
+      const d = new Date(r.data + 'T00:00:00');
+      return d.getMonth() === m && d.getFullYear() === selectedYear;
+    });
+    const min = regs.reduce((a,r) => a + calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl), 0);
+    meses.push(min);
+  }
+  const max = Math.max(...meses, 60); // mínimo de 1h pra evitar divisão por 0
+  const nowM = new Date().getMonth();
+  const nowY = new Date().getFullYear();
+
+  const cont = document.getElementById('hours-chart');
+  cont.innerHTML = `<div class="hours-chart-bars">` +
+    meses.map((min, i) => {
+      const pct = Math.max(2, (min / max) * 100);
+      const isCurrent = (i === nowM && selectedYear === nowY);
+      return `
+        <div class="hours-chart-col${isCurrent ? ' current' : ''}">
+          <div class="hours-chart-val">${min > 0 ? (min/60).toFixed(1)+'h' : ''}</div>
+          <div class="hours-chart-bar" style="height:${pct}%"></div>
+          <div class="hours-chart-label">${getMesNome(i)}</div>
+        </div>`;
+    }).join('') +
+    `</div>`;
+}
+
+function anosDisponiveis() {
+  const anos = new Set(db.registros.map(r => r.data.slice(0,4)));
+  anos.add(String(new Date().getFullYear()));
+  return [...anos].sort();
+}
+
+function renderMonthBar() {
+  const bar = document.getElementById('month-bar');
+  bar.innerHTML = '';
+
+  // seletor de ano estilo ‹ 2026 ›
+  const yearNav = document.createElement('div');
+  yearNav.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:12px;width:100%';
+  yearNav.innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="selectedYear--; renderMonthBar(); renderMonthView(selectedMonth);">‹</button>
+    <span style="font-weight:700;font-size:16px;min-width:48px;text-align:center;font-family:'JetBrains Mono',monospace">${selectedYear}</span>
+    <button class="btn btn-secondary btn-sm" onclick="selectedYear++; renderMonthBar(); renderMonthView(selectedMonth);">›</button>
+  `;
+  bar.appendChild(yearNav);
+
+  const sepEl = document.createElement('div');
+  sepEl.style.width = '100%';
+  sepEl.style.height = '0';
+  bar.appendChild(sepEl);
+
+  for (let i = 0; i < 12; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'month-btn' + (i === selectedMonth ? ' active' : '');
+    btn.textContent = getMesNome(i);
+    btn.onclick = () => { selectedMonth = i; renderMonthBar(); renderMonthView(i); };
+    bar.appendChild(btn);
+  }
+}
+
+function renderMonthView(mes) {
+  const ano = selectedYear;
+  const regs = db.registros.filter(r => {
+    const d = new Date(r.data + 'T00:00:00');
+    return d.getMonth() === mes && d.getFullYear() === ano;
+  });
+
+  const totalMin = regs.reduce((a,r) => a + calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl), 0);
+  const totalAlim = regs.reduce((a,r) => a + (r.alim||0), 0);
+  const totalTransp = regs.reduce((a,r) => a + (r.transp||0), 0);
+  const diasTrab = regs.filter(r => calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl) > 0).length;
+  const vh = db.config.valorHora || 0;
+  const metaMin = (db.config.horasDiarias || 8) * 60;
+  const saldoExtra = regs.reduce((a,r) => a + (calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl) > 0 ? calcExtra(r) : 0), 0);
+
+  document.getElementById('month-summary').innerHTML = `
+    <div class="card accent">
+      <div class="label">Horas — ${getMesNomeFull(mes)}</div>
+      <div class="value">${minToTime(totalMin)}</div>
+      <div class="sub-val">${diasTrab} dias / ${(totalMin/60).toFixed(1)}h</div>
+    </div>
+    <div class="card">
+      <div class="label">Alimentação</div>
+      <div class="value" style="font-size:22px">R$&nbsp;${totalAlim.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      <div class="sub-val">acumulado no mês</div>
+    </div>
+    <div class="card">
+      <div class="label">Transporte</div>
+      <div class="value" style="font-size:22px">R$&nbsp;${totalTransp.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div>
+      <div class="sub-val">acumulado no mês</div>
+    </div>
+  `;
+
+  // Days in month full calendar
+  const diasNoMes = new Date(ano, mes+1, 0).getDate();
+  const minMap = {};
+  regs.forEach(r => {
+    minMap[r.data] = (minMap[r.data] || 0) + calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+  });
+
+  const wg = document.getElementById('week-grid');
+  wg.innerHTML = '';
+  for (let d = 1; d <= diasNoMes; d++) {
+    const iso = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dw = new Date(iso + 'T00:00:00').getDay();
+    const tot = minMap[iso] || 0;
+    const isWeekend = dw === 0 || dw === 6;
+    const todayIso = getISODate(new Date());
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' + (iso===todayIso?' today':'') + (tot>0?' has-hours':'') + (isWeekend?' weekend':'');
+    cell.innerHTML = `<div class="d-name">${getDiaSemana(iso)}</div><div class="d-num">${d}</div>${tot>0?`<div class="d-hours">${minToTime(tot)}</div>`:''}`;
+    wg.appendChild(cell);
+  }
+
+  // Tabela do mês
+  const tw = document.getElementById('dash-table-wrap');
+  if (regs.length === 0) {
+    tw.innerHTML = '<div class="empty"><div class="icon">📋</div><p>Nenhum apontamento neste mês</p></div>';
+    return;
+  }
+  let rows = regs.map(r => {
+    const tot = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+    const extra = tot > 0 ? calcExtra(r) : 0;
+    const extraTxt = tot > 0 ? minToTimeSigned(extra) : '—';
+    const extraClass = extra > 0 ? 'text-green' : (extra < 0 ? '' : 'text-muted');
+    const extraStyle = extra < 0 ? 'color:var(--red)' : '';
+    return `<tr>
+      <td>${formatDate(r.data)}</td>
+      <td><span class="badge badge-gray">${getDiaSemana(r.data)}</span></td>
+      <td class="mono">${r.p1i} → ${r.p1f}</td>
+      <td class="mono">${r.p2i} → ${r.p2f}</td>
+      <td class="mono text-green fw-bold">${minToTime(tot)}</td>
+      <td class="mono ${extraClass} fw-bold" style="${extraStyle}">${extraTxt}</td>
+      <td>${r.clientes ? `<span class="badge badge-blue">${r.clientes}</span>` : ''}</td>
+      <td class="text-muted">${r.obs||''}</td>
+    </tr>`;
+  }).join('');
+  tw.innerHTML = `<table><thead><tr><th>Data</th><th>Dia</th><th>Período 1</th><th>Período 2</th><th>Total</th><th>Extra</th><th>Clientes</th><th>Obs</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ============================================================
+// REGISTROS
+// ============================================================
+function renderRegistros() {
+  // preencher filtro anos
+  const selAno = document.getElementById('filtro-ano');
+  const anosExistentes = [...new Set(db.registros.map(r => r.data.slice(0,4)))].sort();
+  const curAno = selAno.value;
+  selAno.innerHTML = '<option value="">Todos os anos</option>';
+  anosExistentes.forEach(a => {
+    selAno.innerHTML += `<option value="${a}" ${a===curAno?'selected':''}>${a}</option>`;
+  });
+
+  // preencher filtro meses (limitado ao ano selecionado)
+  const sel = document.getElementById('filtro-mes');
+  const anoFiltro = selAno.value;
+  const mesesExistentes = [...new Set(db.registros
+    .filter(r => !anoFiltro || r.data.startsWith(anoFiltro))
+    .map(r => r.data.slice(0,7)))].sort();
+  const curVal = sel.value;
+  sel.innerHTML = '<option value="">Todos os meses</option>';
+  mesesExistentes.forEach(m => {
+    const [y,mo] = m.split('-');
+    sel.innerHTML += `<option value="${m}" ${m===curVal?'selected':''}>${getMesNomeFull(parseInt(mo)-1)} ${y}</option>`;
+  });
+  // se o mês selecionado não existe mais no novo ano, limpa
+  if (curVal && !mesesExistentes.includes(curVal)) sel.value = '';
+
+  const filtroMes = sel.value;
+  let regs = filtroMes
+    ? db.registros.filter(r => r.data.startsWith(filtroMes))
+    : anoFiltro
+      ? db.registros.filter(r => r.data.startsWith(anoFiltro))
+      : db.registros;
+
+  const busca = (document.getElementById('busca-cliente').value || '').trim().toLowerCase();
+  if (busca) {
+    regs = regs.filter(r => (r.clientes || '').toLowerCase().includes(busca));
+  }
+
+  // Card de totais dinâmico
+  const totalMin   = regs.reduce((a,r) => a + calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl), 0);
+  const totalDias  = new Set(regs.filter(r => calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl)>0).map(r=>r.data)).size;
+  const totalRegs  = regs.length;
+  const cardStyle  = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 20px;min-width:140px';
+  const lbl        = t => `<div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px">${t}</div>`;
+  const val        = (v,color) => `<div style="font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${color||'var(--text)'}">${v}</div>`;
+  document.getElementById('reg-totais').innerHTML = `
+    <div style="${cardStyle}">${lbl('Total de Horas')}${val(minToTime(totalMin),'var(--accent)')}</div>
+    <div style="${cardStyle}">${lbl('Dias Trabalhados')}${val(totalDias)}</div>
+    <div style="${cardStyle}">${lbl('Registros')}${val(totalRegs)}</div>
+  `;
+
+  const tbody = document.getElementById('tbody-registros');
+  if (regs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="14"><div class="empty"><div class="icon">📋</div><p>Nenhum registro encontrado</p></div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = regs.map(r => {
+    const tot = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+    const extra = tot > 0 ? calcExtra(r) : 0;
+    const extraTxt = tot > 0 ? minToTimeSigned(extra) : '—';
+    const extraClass = extra > 0 ? 'text-green' : (extra < 0 ? '' : 'text-muted');
+    const extraStyle = extra < 0 ? 'color:var(--red)' : '';
+    const obsClass = r.obs && ['FERIADO','FÉRIAS','FERIAS'].some(k => r.obs.toUpperCase().includes(k)) ? 'badge-yellow' : 'badge-gray';
+    return `<tr>
+      <td>${formatDate(r.data)}</td>
+      <td><span class="badge badge-gray">${getDiaSemana(r.data)}</span></td>
+      <td class="mono">${r.p1i}</td><td class="mono">${r.p1f}</td>
+      <td class="mono">${r.p2i}</td><td class="mono">${r.p2f}</td>
+      <td class="mono">${r.tsl}</td>
+      <td class="mono text-green fw-bold">${minToTime(tot)}</td>
+      <td class="mono ${extraClass} fw-bold" style="${extraStyle}">${extraTxt}</td>
+      <td class="mono">R$ ${(r.alim||0).toFixed(2)}</td>
+      <td class="mono">R$ ${(r.transp||0).toFixed(2)}</td>
+      <td>${r.clientes ? `<span class="badge badge-blue">${r.clientes}</span>` : '<span class="text-muted">—</span>'}</td>
+      <td>${r.obs ? `<span class="badge ${obsClass}">${r.obs}</span>` : ''}</td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="visualizarRegistro(${r.id})" title="Visualizar">👁️</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="imprimirOS(${r.id})" title="Imprimir OS">🖨️</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="copiarRegistro(${r.id})" title="Copiar registro">📋</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="abrirEdicao(${r.id})" title="Editar">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="excluirRegistro(${r.id})" title="Excluir">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function fecharVisualizar() {
+  document.getElementById('modal-visualizar-overlay').classList.remove('open');
+}
+
+function visualizarRegistro(id) {
+  const r = db.registros.find(x => x.id === id);
+  if (!r) return;
+
+  const tot   = calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl);
+  const extra = calcExtra(r);
+  const cli   = (db.clientes || []).find(c => (c.codigo||'').toLowerCase() === (r.codigo||'').toLowerCase());
+  const nomeCliente = cli ? cli.nome : (r.clientes || '—');
+  const extraClass  = extra > 0 ? 'view-green' : (extra < 0 ? 'view-red' : '');
+
+  document.getElementById('visualizar-content').innerHTML = `
+    <!-- Linha 1: Data + Código + Cliente -->
+    <div class="view-grid" style="grid-template-columns:150px 130px 1fr;margin-bottom:16px">
+      <div class="view-field"><div class="vf-label">Data</div><div class="vf-value">${formatDate(r.data)} <span style="color:var(--muted);font-size:11px">${getDiaSemana(r.data)}</span></div></div>
+      <div class="view-field"><div class="vf-label">Código</div><div class="vf-value">${r.codigo || '—'}</div></div>
+      <div class="view-field"><div class="vf-label">Cliente / Descrição</div><div class="vf-value syne">${nomeCliente}</div></div>
+    </div>
+    <!-- Horários -->
+    <div class="view-grid cols3">
+      <div class="view-field"><div class="vf-label">Início Período 1</div><div class="vf-value">${r.p1i}</div></div>
+      <div class="view-field"><div class="vf-label">Término Período 1</div><div class="vf-value">${r.p1f}</div></div>
+      <div class="view-field"><div class="vf-label">Translado</div><div class="vf-value">${r.tsl}</div></div>
+      <div class="view-field"><div class="vf-label">Início Período 2</div><div class="vf-value">${r.p2i}</div></div>
+      <div class="view-field"><div class="vf-label">Término Período 2</div><div class="vf-value">${r.p2f}</div></div>
+      <div class="view-field view-accent"><div class="vf-label">Total (calculado)</div><div class="vf-value">${minToTime(tot)}h</div></div>
+    </div>
+    <div class="sep"></div>
+    <!-- Valores -->
+    <div class="view-grid cols2">
+      <div class="view-field"><div class="vf-label">Alimentação (R$)</div><div class="vf-value">R$ ${(r.alim||0).toFixed(2)}</div></div>
+      <div class="view-field"><div class="vf-label">Transporte (R$)</div><div class="vf-value">R$ ${(r.transp||0).toFixed(2)}</div></div>
+    </div>
+    <!-- Descrição -->
+    <div class="view-field" style="margin-top:14px">
+      <div class="vf-label">Descrição dos Serviços Prestados</div>
+      <div class="vf-value desc">${r.desc ? r.desc.replace(/&/g,'&amp;').replace(/</g,'&lt;') : '—'}</div>
+    </div>
+    <!-- Observações -->
+    <div class="view-field" style="margin-top:14px">
+      <div class="vf-label">Observações</div>
+      <div class="vf-value syne">${r.obs || '—'}</div>
+    </div>
+  `;
+
+  document.getElementById('modal-visualizar-overlay').classList.add('open');
+}
+
+// ============================================================
+// EDIÇÃO / EXCLUSÃO
+// ============================================================
+// Abre o modal de "Novo Apontamento" já preenchido com os dados de um registro
+// existente (horários, translado, alimentação, transporte, clientes, obs).
+// A data fica em branco de propósito: como só pode existir 1 registro por dia,
+// o usuário escolhe a nova data antes de salvar — assim cria um registro novo
+// (não sobrescreve o original) e pode ajustar qualquer campo antes de confirmar.
+// Importante: NÃO preenche f-edit-id, pois copiar deve sempre gerar um
+// registro novo. Para alterar um registro existente, use o botão ✏️ (Alterar).
+function copiarRegistro(id) {
+  const r = db.registros.find(x => x.id === id);
+  if (!r) return;
+  limparForm();
+  document.getElementById('f-edit-id').value = '';
+  document.getElementById('f-modal-titulo').textContent = '✦ Copiar Apontamento';
+  document.getElementById('f-data').value = '';
+  document.getElementById('f-p1-inicio').value = r.p1i;
+  document.getElementById('f-p1-fim').value = r.p1f;
+  document.getElementById('f-p2-inicio').value = r.p2i;
+  document.getElementById('f-p2-fim').value = r.p2f;
+  document.getElementById('f-translado').value = r.tsl;
+  document.getElementById('f-alimentacao').value = r.alim || 0;
+  document.getElementById('f-transporte').value = r.transp || 0;
+  document.getElementById('f-codigo').value = r.codigo || '';
+  document.getElementById('f-clientes').value = r.clientes || '';
+  document.getElementById('f-obs').value = r.obs || '';
+  document.getElementById('f-desc').value = r.desc || '';
+  atualizarTotal();
+  document.getElementById('modal-apontamento-overlay').classList.add('open');
+  toast('Dados copiados — escolha a data do novo registro');
+  setTimeout(() => document.getElementById('f-data').focus(), 50);
+}
+
+function abrirEdicao(id) {
+  const r = db.registros.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-data').value = r.data;
+  document.getElementById('edit-codigo').value = r.codigo || '';
+  document.getElementById('edit-clientes').value = r.clientes || '';
+  document.getElementById('edit-obs').value = r.obs || '';
+  document.getElementById('edit-desc').value = r.desc || '';
+  document.getElementById('edit-p1i').value = r.p1i;
+  document.getElementById('edit-p1f').value = r.p1f;
+  document.getElementById('edit-p2i').value = r.p2i;
+  document.getElementById('edit-p2f').value = r.p2f;
+  document.getElementById('edit-tsl').value = r.tsl;
+  document.getElementById('edit-alim').value = r.alim || 0;
+  document.getElementById('edit-transp').value = r.transp || 0;
+  document.getElementById('modal-overlay').classList.add('open');
+  atualizarTotalEdit();
+}
+
+function acCodigoEdit(val) {
+  const q = val.trim().toLowerCase();
+  const lista = clientesAtivos()
+    .filter(c => !q || (c.codigo || '').toLowerCase().includes(q) || c.nome.toLowerCase().includes(q))
+    .sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+  renderAcItems('ac-edit-codigo', lista, cli => {
+    document.getElementById('edit-codigo').value = cli.codigo || '';
+    document.getElementById('edit-clientes').value = cli.nome;
+    fecharAc('ac-edit-codigo');
+  });
+}
+
+function fecharModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function salvarEdicao() {
+  const id = parseInt(document.getElementById('edit-id').value);
+  const idx = db.registros.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  const codigoEdit = document.getElementById('edit-codigo').value.trim();
+  if (!codigoEdit) { toast('Informe o código do cliente','error'); document.getElementById('edit-codigo').focus(); return; }
+  db.registros[idx] = {
+    ...db.registros[idx],
+    data: document.getElementById('edit-data').value,
+    p1i: document.getElementById('edit-p1i').value,
+    p1f: document.getElementById('edit-p1f').value,
+    p2i: document.getElementById('edit-p2i').value,
+    p2f: document.getElementById('edit-p2f').value,
+    tsl: document.getElementById('edit-tsl').value,
+    alim: parseFloat(document.getElementById('edit-alim').value) || 0,
+    transp: parseFloat(document.getElementById('edit-transp').value) || 0,
+    clientes: document.getElementById('edit-clientes').value.trim(),
+    codigo: document.getElementById('edit-codigo').value.trim(),
+    obs: document.getElementById('edit-obs').value.trim(),
+    desc: document.getElementById('edit-desc').value.trim()
+  };
+  db.registros.sort((a,b) => a.data.localeCompare(b.data));
+  salvarDB();
+  fecharModal();
+  toast('Registro atualizado!');
+  renderRegistros();
+}
+
+async function excluirRegistro(id) {
+  const ok = await confirmDialog('Excluir este registro?', 'Excluir registro', 'Excluir');
+  if (!ok) return;
+  db.registros = db.registros.filter(r => r.id !== id);
+  salvarDB();
+  toast('Registro excluído');
+  renderRegistros();
+}
+
+// ============================================================
+// CLIENTES
+// ============================================================
+function renderClientes() {
+  renderClienteLista();
+  renderHistoricoClientes();
+}
+
+function renderClienteLista() {
+  const tbody = document.getElementById('tbody-cliente-lista');
+  if (!db.clientes.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="icon">◎</div><p>Nenhum cliente cadastrado ainda</p></div></td></tr>';
+    return;
+  }
+  const lista = [...db.clientes].sort((a,b) => (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}));
+  tbody.innerHTML = lista.map(c => {
+    const con = c.consultoriaCodigo ? db.consultorias.find(x => (x.codigo || x.id) === c.consultoriaCodigo) : null;
+    return `
+    <tr>
+      <td class="mono">${escapeHtml(c.codigo) || '<span class="text-muted">—</span>'}</td>
+      <td><span class="badge badge-blue">${escapeHtml(c.nome)}</span></td>
+      <td>${escapeHtml(c.contato) || '<span class="text-muted">—</span>'}</td>
+      <td>${escapeHtml(c.email) || '<span class="text-muted">—</span>'}</td>
+      <td>${escapeHtml(c.telefone) || '<span class="text-muted">—</span>'}</td>
+      <td class="mono">${c.valorHora ? 'R$ ' + Number(c.valorHora).toFixed(2) : '<span class="text-muted">—</span>'}</td>
+      <td>${c.ativo === false ? '<span class="badge badge-gray">Inativo</span>' : '<span class="badge badge-green">Ativo</span>'}</td>
+      <td>${escapeHtml(c.obs) || '<span class="text-muted">—</span>'}</td>
+      <td class="actions">
+        <button class="btn btn-secondary btn-icon-sm" onclick="abrirFormCliente('${c.id}')" title="Editar">✎</button>
+        <button class="btn btn-danger btn-icon-sm" onclick="excluirCliente('${c.id}')" title="Excluir">🗑</button>
+      </td>
+    </tr>
+  `}).join('');
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function abrirFormCliente(id) {
+  document.getElementById('cli-form-msg').textContent = '';
+
+  // Popular select de consultorias
+  const selCon = document.getElementById('cli-consultoria');
+  selCon.innerHTML = '<option value="">— Nenhuma —</option>' +
+    [...db.consultorias].sort((a,b) => (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}))
+      .map(c => `<option value="${escapeHtml(c.codigo || c.id)}">${escapeHtml(c.nome)}${c.codigo ? ' ('+c.codigo+')' : ''}</option>`).join('');
+
+  if (id) {
+    const c = db.clientes.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('form-cliente-titulo').textContent = '✏️ Editar Cliente';
+    document.getElementById('cli-id').value = c.id;
+    document.getElementById('cli-nome').value = c.nome || '';
+    document.getElementById('cli-codigo').value = c.codigo || '';
+    document.getElementById('cli-contato').value = c.contato || '';
+    document.getElementById('cli-email').value = c.email || '';
+    document.getElementById('cli-telefone').value = c.telefone || '';
+    document.getElementById('cli-ativo').value = c.ativo === false ? '0' : '1';
+    document.getElementById('cli-obs').value = c.obs || '';
+    document.getElementById('cli-consultoria').value = c.consultoriaCodigo || '';
+  } else {
+    document.getElementById('form-cliente-titulo').textContent = '✦ Novo Cliente';
+    document.getElementById('cli-id').value = '';
+    document.getElementById('cli-nome').value = '';
+    document.getElementById('cli-codigo').value = '';
+    document.getElementById('cli-contato').value = '';
+    document.getElementById('cli-email').value = '';
+    document.getElementById('cli-telefone').value = '';
+    document.getElementById('cli-ativo').value = '1';
+    document.getElementById('cli-obs').value = '';
+    document.getElementById('cli-consultoria').value = '';
+  }
+  document.getElementById('form-cliente-overlay').classList.add('open');
+  document.getElementById('cli-nome').focus({ preventScroll: true });
+}
+
+function fecharFormCliente() {
+  document.getElementById('form-cliente-overlay').classList.remove('open');
+}
+
+function salvarCliente() {
+  const id = document.getElementById('cli-id').value;
+  const nome = document.getElementById('cli-nome').value.trim();
+  const codigo = document.getElementById('cli-codigo').value.trim();
+  const msg = document.getElementById('cli-form-msg');
+  if (!nome) { msg.textContent = 'Informe o nome do cliente.'; msg.style.color = 'var(--red)'; return; }
+
+  const duplicado = db.clientes.find(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== id);
+  if (duplicado) { msg.textContent = 'Já existe um cliente com esse nome.'; msg.style.color = 'var(--red)'; return; }
+
+  if (codigo) {
+    const codigoDuplicado = db.clientes.find(c => (c.codigo || '').toLowerCase() === codigo.toLowerCase() && c.id !== id);
+    if (codigoDuplicado) { msg.textContent = `Esse código já está em uso pelo cliente "${codigoDuplicado.nome}".`; msg.style.color = 'var(--red)'; return; }
+  }
+
+  const dados = {
+    nome,
+    codigo,
+    contato: document.getElementById('cli-contato').value.trim(),
+    email: document.getElementById('cli-email').value.trim(),
+    telefone: document.getElementById('cli-telefone').value.trim(),
+    valorHora: null,
+    ativo: document.getElementById('cli-ativo').value === '1',
+    obs: document.getElementById('cli-obs').value.trim(),
+    consultoriaCodigo: document.getElementById('cli-consultoria').value || null
+  };
+
+  if (id) {
+    const c = db.clientes.find(x => x.id === id);
+    if (c) Object.assign(c, dados);
+  } else {
+    db.clientes.push({ id: gerarIdCliente(), ...dados });
+  }
+
+  salvarDB();
+  toast(id ? 'Cliente atualizado!' : 'Cliente cadastrado!', 'success');
+  fecharFormCliente();
+  renderClienteLista();
+  atualizarDatalist();
+}
+
+async function excluirCliente(id) {
+  const c = db.clientes.find(x => x.id === id);
+  if (!c) return;
+  const ok = await confirmDialog(`Excluir o cliente "${c.nome}"? O histórico de apontamentos não será afetado.`, 'Excluir cliente', 'Excluir');
+  if (!ok) return;
+  db.clientes = db.clientes.filter(x => x.id !== id);
+  salvarDB();
+  toast('Cliente excluído', 'success');
+  renderClienteLista();
+  atualizarDatalist();
+}
+
+// ============================================================
+// CONSULTORIA
+// ============================================================
+function gerarIdConsultoria() {
+  return 'con_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+}
+
+function renderConsultoria() {
+  const tbody = document.getElementById('tbody-consultoria-lista');
+  if (!db.consultorias.length) {
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><div class="icon">🧩</div><p>Nenhuma consultoria cadastrada ainda</p></div></td></tr>';
+    return;
+  }
+  const lista = [...db.consultorias].sort((a,b) => (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}));
+  tbody.innerHTML = lista.map(c => {
+    const clientesVinculados = (db.clientes || []).filter(cl => cl.consultoriaCodigo === (c.codigo || c.id));
+    const clientesBadges = clientesVinculados.length
+      ? `<div class="clientes-vinculados-badges">${clientesVinculados.map(cl => `<span class="badge badge-blue">${escapeHtml(cl.nome)}</span>`).join('')}</div>`
+      : '<span class="text-muted">—</span>';
+    return `
+    <tr>
+      <td class="mono">${escapeHtml(c.codigo) || '<span class="text-muted">—</span>'}</td>
+      <td><span class="badge badge-blue">${escapeHtml(c.nome)}</span></td>
+      <td>${escapeHtml(c.contato) || '<span class="text-muted">—</span>'}</td>
+      <td>${escapeHtml(c.email) || '<span class="text-muted">—</span>'}</td>
+      <td>${escapeHtml(c.telefone) || '<span class="text-muted">—</span>'}</td>
+      <td class="mono">${c.valorHora ? 'R$ ' + Number(c.valorHora).toFixed(2) : '<span class="text-muted">—</span>'}</td>
+      <td>${c.ativo === false ? '<span class="badge badge-gray">Inativo</span>' : '<span class="badge badge-green">Ativo</span>'}</td>
+      <td style="max-width:220px">${clientesBadges}</td>
+      <td>${escapeHtml(c.obs) || '<span class="text-muted">—</span>'}</td>
+      <td class="actions">
+        <button class="btn btn-secondary btn-icon-sm" onclick="abrirFormConsultoria('${c.id}')" title="Editar">✎</button>
+        <button class="btn btn-danger btn-icon-sm" onclick="excluirConsultoria('${c.id}')" title="Excluir">🗑</button>
+      </td>
+    </tr>
+  `}).join('');
+}
+
+function abrirFormConsultoria(id) {
+  document.getElementById('con-form-msg').textContent = '';
+  if (id) {
+    const c = db.consultorias.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('form-consultoria-titulo').textContent = '✏️ Editar Consultoria';
+    document.getElementById('con-id').value = c.id;
+    document.getElementById('con-nome').value = c.nome || '';
+    document.getElementById('con-codigo').value = c.codigo || '';
+    document.getElementById('con-contato').value = c.contato || '';
+    document.getElementById('con-email').value = c.email || '';
+    document.getElementById('con-telefone').value = c.telefone || '';
+    document.getElementById('con-valor-hora').value = c.valorHora || '';
+    document.getElementById('con-ativo').value = c.ativo === false ? '0' : '1';
+    document.getElementById('con-obs').value = c.obs || '';
+  } else {
+    document.getElementById('form-consultoria-titulo').textContent = '✦ Nova Consultoria';
+    ['con-id','con-nome','con-codigo','con-contato','con-email','con-telefone','con-valor-hora','con-obs'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('con-ativo').value = '1';
+  }
+  document.getElementById('form-consultoria-overlay').classList.add('open');
+  document.getElementById('con-nome').focus({ preventScroll: true });
+}
+
+// ── (vinculação de clientes gerenciada no cadastro do cliente via cli-consultoria) ──
+
+function fecharFormConsultoria() {
+  document.getElementById('form-consultoria-overlay').classList.remove('open');
+}
+
+function salvarConsultoria() {
+  const id   = document.getElementById('con-id').value;
+  const nome = document.getElementById('con-nome').value.trim();
+  const codigo = document.getElementById('con-codigo').value.trim();
+  const msg  = document.getElementById('con-form-msg');
+  if (!nome) { msg.textContent = 'Informe o nome da consultoria.'; msg.style.color = 'var(--red)'; return; }
+
+  const duplicado = db.consultorias.find(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== id);
+  if (duplicado) { msg.textContent = 'Já existe uma consultoria com esse nome.'; msg.style.color = 'var(--red)'; return; }
+
+  const dados = {
+    nome, codigo,
+    contato:    document.getElementById('con-contato').value.trim(),
+    email:      document.getElementById('con-email').value.trim(),
+    telefone:   document.getElementById('con-telefone').value.trim(),
+    valorHora:  parseFloat(document.getElementById('con-valor-hora').value) || null,
+    ativo:      document.getElementById('con-ativo').value === '1',
+    obs:        document.getElementById('con-obs').value.trim()
+  };
+
+  if (id) {
+    const c = db.consultorias.find(x => x.id === id);
+    if (c) Object.assign(c, dados);
+  } else {
+    db.consultorias.push({ id: gerarIdConsultoria(), ...dados });
+  }
+
+  salvarDB();
+  toast(id ? 'Consultoria atualizada!' : 'Consultoria cadastrada!', 'success');
+  fecharFormConsultoria();
+  renderConsultoria();
+}
+
+async function excluirConsultoria(id) {
+  const c = db.consultorias.find(x => x.id === id);
+  if (!c) return;
+  const ok = await confirmDialog(`Excluir a consultoria "${c.nome}"?`, 'Excluir consultoria', 'Excluir');
+  if (!ok) return;
+  db.consultorias = db.consultorias.filter(x => x.id !== id);
+  salvarDB();
+  toast('Consultoria excluída', 'success');
+  renderConsultoria();
+}
+
+function renderHistoricoClientes() {
+  // Agregar por cliente
+  const map = {};
+  db.registros.forEach(r => {
+    if (!r.clientes) return;
+    const nomes = r.clientes.split(/[/,;]+/).map(c => c.trim()).filter(Boolean);
+    nomes.forEach(n => {
+      if (!map[n]) map[n] = { dias: 0, min: 0, ultimo: '' };
+      map[n].dias++;
+      map[n].min += calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+      if (!map[n].ultimo || r.data > map[n].ultimo) map[n].ultimo = r.data;
+    });
+  });
+
+  const tbody = document.getElementById('tbody-clientes');
+  const entries = Object.entries(map).sort((a,b) => b[1].min - a[1].min);
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="icon">◎</div><p>Nenhum cliente com apontamentos</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map(([nome, data]) => `
+    <tr>
+      <td><span class="badge badge-blue">${escapeHtml(nome)}</span></td>
+      <td>${data.dias}</td>
+      <td class="mono text-green fw-bold">${minToTime(data.min)}</td>
+      <td>${formatDate(data.ultimo)}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// EXPORTAR / IMPORTAR
+function initPdfSelects() {
+  const inpDe  = document.getElementById('pdf-data-de');
+  const inpAte = document.getElementById('pdf-data-ate');
+  if (!inpDe.value && !inpAte.value) {
+    const now = new Date();
+    const primeiroDia = new Date(now.getFullYear(), now.getMonth(), 1);
+    const ultimoDia   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const toIso = d => d.toISOString().slice(0,10);
+    inpDe.value  = toIso(primeiroDia);
+    inpAte.value = toIso(ultimoDia);
+  }
+  popularSelectConsultoriaPDF();
+}
+
+function popularSelectConsultoriaPDF() {
+  // agora usa autocomplete — nada a popular
+}
+
+function acPdfConsultoria(val) {
+  const q = val.trim().toLowerCase();
+  const lista = [...(db.consultorias||[])]
+    .filter(c => !q ||
+      (c.codigo||'').toLowerCase().includes(q) ||
+      (c.nome||'').toLowerCase().includes(q))
+    .sort((a,b) => (a.codigo||'').localeCompare(b.codigo||'','pt-BR',{numeric:true}));
+
+  const el = document.getElementById('ac-pdf-consultoria');
+  if (!el) return;
+  el.innerHTML = '';
+
+  // opção "Todas" (quando campo vazio)
+  if (!q) {
+    const all = document.createElement('div');
+    all.className = 'ac-item';
+    all.innerHTML = '<span class="ac-cod" style="color:var(--muted)">—</span><span class="ac-nome" style="color:var(--muted)">Todas</span>';
+    all.addEventListener('mousedown', () => {
+      document.getElementById('pdf-consultoria-input').value = '';
+      document.getElementById('pdf-consultoria').value = '';
+      fecharAc('ac-pdf-consultoria');
+    });
+    el.appendChild(all);
+  }
+
+  if (!lista.length && q) { el.style.display = 'none'; document.getElementById('pdf-consultoria').value = ''; return; }
+
+  lista.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'ac-item';
+    div.innerHTML = `<span class="ac-cod">${escapeHtml(c.codigo||c.id)}</span><span class="ac-nome">${escapeHtml(c.nome)}</span>`;
+    div.addEventListener('mousedown', () => {
+      document.getElementById('pdf-consultoria-input').value = c.codigo || c.id;
+      document.getElementById('pdf-consultoria').value = c.codigo || c.id;
+      fecharAc('ac-pdf-consultoria');
+    });
+    el.appendChild(div);
+  });
+  el.style.display = 'block';
+}
+
+function gerarRelatorioPDF() {
+  const dataDe       = document.getElementById('pdf-data-de').value;
+  const dataAte      = document.getElementById('pdf-data-ate').value;
+  const cliDe        = (document.getElementById('pdf-cli-de').value  || '').trim().toLowerCase();
+  const cliAte       = (document.getElementById('pdf-cli-ate').value || '').trim().toLowerCase();
+  const consultoriaFiltro = (document.getElementById('pdf-consultoria').value || '').trim();
+
+  if (!dataDe || !dataAte) {
+    toast('Informe a Data De e a Data Até', 'error');
+    return;
+  }
+  if (dataDe > dataAte) {
+    toast('A Data De não pode ser maior que a Data Até', 'error');
+    return;
+  }
+
+  // Resolve IDs de clientes que pertencem à consultoria filtrada
+  let clientesConsultoria = null;
+  if (consultoriaFiltro) {
+    clientesConsultoria = new Set(
+      (db.clientes||[])
+        .filter(c => (c.consultoriaCodigo||'') === consultoriaFiltro)
+        .map(c => (c.codigo||'').toLowerCase())
+    );
+  }
+
+  const regs = db.registros
+    .filter(r => {
+      if (r.data < dataDe || r.data > dataAte) return false;
+      const chave = (r.codigo || r.clientes || '').toLowerCase();
+      if (cliDe  && chave < cliDe)  return false;
+      if (cliAte && chave > cliAte) return false;
+      if (clientesConsultoria !== null && !clientesConsultoria.has(chave)) return false;
+      return true;
+    })
+    .sort((a,b) => a.data.localeCompare(b.data));
+
+  if (!regs.length) {
+    toast(`Nenhum apontamento encontrado no período informado`, 'error');
+    return;
+  }
+
+  const nome       = db.config.nome    || '';
+  const empresa    = db.config.empresa || '';
+  const fmt2 = v => 'R$\u00a0' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const periodoLabel = `${formatDate(dataDe)} a ${formatDate(dataAte)}`;
+  const clienteLabel = '';
+
+  // Agrupa os registros por cliente (código ou nome livre)
+  const grupos = new Map();
+  regs.forEach(r => {
+    const chave = (r.codigo || r.clientes || '—').toLowerCase();
+    if (!grupos.has(chave)) grupos.set(chave, []);
+    grupos.get(chave).push(r);
+  });
+
+  const clienteInfo = lista => {
+    const r0 = lista[0];
+    const cli = (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r0.codigo || '').toLowerCase());
+    return {
+      codigo:   r0.codigo || '—',
+      nome:     cli ? cli.nome : (r0.clientes || '—'),
+      contato:  cli ? (cli.contato  || '—') : '—',
+      email:    cli ? (cli.email    || '—') : '—',
+      telefone: cli ? (cli.telefone || '—') : '—'
+    };
+  };
+
+  const gruposOrdenados = [...grupos.values()].sort((a,b) =>
+    clienteInfo(a).nome.localeCompare(clienteInfo(b).nome, 'pt-BR'));
+
+  const multiplosClientes = gruposOrdenados.length > 1;
+
+  const construirPagina = (listaRegs, isUltima) => {
+    const c = clienteInfo(listaRegs);
+
+    const totalMin   = listaRegs.reduce((a,r) => a + calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl), 0);
+    const totalAlim  = listaRegs.reduce((a,r) => a + (r.alim||0), 0);
+    const totalTransp= listaRegs.reduce((a,r) => a + (r.transp||0), 0);
+    const diasTrab   = new Set(listaRegs.filter(r => calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl)>0).map(r=>r.data)).size;
+    const saldoExtra = listaRegs.reduce((a,r) => a + (calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl)>0 ? calcExtra(r) : 0), 0);
+
+    const linhas = listaRegs.map(r => {
+      const tot   = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+      const extra = tot > 0 ? calcExtra(r) : 0;
+      const extraCor = extra > 0 ? '#16a34a' : extra < 0 ? '#dc2626' : '#888';
+      return `<tr>
+        <td>${formatDate(r.data)}</td>
+        <td>${r.p1i} – ${r.p1f}</td>
+        <td>${r.p2i && r.p2i!=='00:00' ? r.p2i+' – '+r.p2f : '—'}</td>
+        <td>${r.tsl||'00:00'}</td>
+        <td style="font-weight:700;color:#4f8ef7">${minToTime(tot)}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+  <div class="page"${isUltima ? '' : ' style="page-break-after:always"'}>
+    <!-- CABEÇALHO -->
+    <div class="os-header">
+      <div class="brand">
+        <h1>Controle de <span>Horas</span></h1>
+      </div>
+    </div>
+    <div style="text-align:center;margin:10px 0 16px;padding:8px 0">
+      <span style="font-size:20px;font-weight:800;color:#4f8ef7;letter-spacing:-0.5px">Relatório por Período</span>
+    </div>
+
+    <!-- DADOS DO CLIENTE -->
+    <div class="section">
+      <div class="section-title">Dados do Cliente</div>
+      <div class="grid grid-3">
+        <div class="field"><label>Código</label><span>${c.codigo}</span></div>
+        <div class="field"><label>Cliente</label><span>${c.nome}</span></div>
+        <div class="field"><label>Contato</label><span>${c.contato}</span></div>
+        <div class="field"><label>E-mail</label><span>${c.email}</span></div>
+        <div class="field"><label>Telefone</label><span>${c.telefone}</span></div>
+        <div class="field"><label>Período do Relatório</label><span>${periodoLabel}</span></div>
+      </div>
+    </div>
+
+    <!-- TABELA DE APONTAMENTOS -->
+    <div class="section">
+      <div class="section-title">Apontamentos do Período</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th><th>Período 1</th><th>Período 2</th><th>Translado</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" style="text-align:right;color:#555;font-weight:400;font-size:10px">Totais do período</td>
+            <td style="color:#4f8ef7">${minToTime(totalMin)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- ASSINATURAS -->
+    <div class="sign-row">
+      <div class="sign-line">Assinatura do Prestador<br>${nome || empresa}</div>
+      <div class="sign-line">Assinatura do Responsável / Cliente</div>
+    </div>
+  </div>`;
+  };
+
+  const paginasHtml = gruposOrdenados
+    .map((lista, i) => construirPagina(lista, i === gruposOrdenados.length - 1))
+    .join('\n');
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Relatório ${periodoLabel} — ${empresa}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; color: #111; font-size: 12px; padding: 28px 32px; }
+
+    /* CABEÇALHO */
+    .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 20px; }
+    .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+    .os-header .brand h1 span { color: #4f8ef7; }
+    .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
+    .os-meta { text-align: right; }
+    .os-meta .periodo { font-size: 16px; font-weight: 700; color: #4f8ef7; }
+    .os-meta .sub { font-size: 11px; color: #555; margin-top: 2px; }
+
+    /* SEÇÕES */
+    .section { margin-bottom: 20px; }
+    .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #777; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 12px; }
+
+    /* DADOS DO CLIENTE */
+    .grid { display: grid; gap: 10px; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .field label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; }
+    .field span  { font-size: 12px; font-weight: 600; color: #111; }
+
+    /* CARDS DE RESUMO */
+    .summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 10px; }
+    .summary-2 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .kpi { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; }
+    .kpi .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+    .kpi .val { font-size: 18px; font-weight: 700; color: #111; }
+    .kpi.accent .val { color: #4f8ef7; }
+    .kpi.green  .val { color: #16a34a; }
+
+    /* TABELA */
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    thead th { background: #f5f5f5; border: 1px solid #e0e0e0; padding: 7px 8px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #555; }
+    tbody td { border: 1px solid #eee; padding: 7px 8px; vertical-align: middle; }
+    tbody tr:nth-child(even) td { background: #fafafa; }
+    tbody tr:last-child td { border-bottom: 1px solid #ddd; }
+    tfoot td { border: 1px solid #e0e0e0; padding: 8px; font-weight: 700; background: #f5f5f5; font-size: 11px; }
+
+    /* ASSINATURAS */
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; }
+    .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
+
+    @media print { body { padding: 16px 20px; } @page { margin: 0; } }
+  </style></head><body>
+${paginasHtml}
+  <scr` + `ipt>window.onload = () => setTimeout(() => window.print(), 300);</scr` + `ipt>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { toast('Permita pop-ups para gerar o PDF', 'error'); return; }
+  w.document.write(html);
+  w.document.close();
+  toast(multiplosClientes
+    ? `Relatório gerado com ${gruposOrdenados.length} clientes (${gruposOrdenados.length} folhas)!`
+    : `Relatório gerado!`);
+}
+
+// ============================================================
+// IMPRESSÃO DE OS (ORDEM DE SERVIÇO) POR REGISTRO
+// ============================================================
+function imprimirOS(id) {
+  const r = db.registros.find(x => x.id === id);
+  if (!r) return;
+
+  const empresa = db.config.empresa || '';
+  const nome    = db.config.nome    || '';
+  const vh      = valorHoraDoRegistro(r, db.config.valorHora || 0);
+  const tot     = calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl);
+  const extra   = calcExtra(r);
+  const valorTotal = ((tot / 60) * vh).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+  // cliente
+  const cli = (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r.codigo || '').toLowerCase());
+  const nomeCliente  = cli ? cli.nome  : (r.clientes || '—');
+  const codCliente   = r.codigo || '—';
+  const contatoCli   = cli ? (cli.contato || '—') : '—';
+  const emailCli     = cli ? (cli.email   || '—') : '—';
+  const telCli       = cli ? (cli.telefone|| '—') : '—';
+
+  // período formatado
+  const p1 = (r.p1i && r.p1f) ? `${r.p1i} – ${r.p1f}` : '—';
+  const p2 = (r.p2i && r.p2f && r.p2i !== '00:00') ? `${r.p2i} – ${r.p2f}` : '—';
+
+  // quebra de linha da descrição para HTML
+  const descHtml = r.desc
+    ? r.desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')
+    : '<span style="color:#999">Não informado</span>';
+
+  const obsHtml = r.obs || '—';
+
+  const osNum = String(r.id).slice(-6).padStart(6,'0');
+  const dataFmt = formatDate(r.data);
+  const diaSem  = getDiaSemana(r.data);
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>OS #${osNum} — ${nomeCliente}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; color: #111; font-size: 12px; padding: 28px 32px; }
+    /* cabeçalho */
+    .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 18px; }
+    .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+    .os-header .brand h1 span { color: #4f8ef7; }
+    .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
+    .os-meta { text-align: right; }
+    .os-meta .os-num { font-size: 18px; font-weight: 700; color: #4f8ef7; }
+    .os-meta .os-date { font-size: 11px; color: #555; margin-top: 2px; }
+    /* seções */
+    .section { margin-bottom: 16px; }
+    .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #777; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 10px; }
+    /* grid de campos */
+    .grid { display: grid; gap: 10px; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .field label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; }
+    .field span  { font-size: 12px; font-weight: 600; color: #111; }
+    /* horas */
+    .hours-box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; text-align: center; }
+    .hours-box .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; }
+    .hours-box .val { font-size: 20px; font-weight: 700; color: #111; margin-top: 2px; }
+    .hours-box.accent .val { color: #4f8ef7; }
+    .hours-box.green  .val { color: #16a34a; }
+    /* descrição */
+    .desc-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px 14px; min-height: 80px; line-height: 1.65; color: #222; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+    /* assinaturas */
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding-top: 16px; }
+    .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
+    /* rodapé fixo */
+    @page { margin-bottom: 48px; }
+    .os-footer {
+      position: fixed; bottom: 0; left: 32px; right: 32px;
+      background: #fff;
+      border-top: 1px solid #ddd;
+      padding: 6px 0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .os-footer .brand-foot { font-size: 12px; font-weight: 900; color: #111; letter-spacing: -0.3px; }
+    .os-footer .brand-foot span { color: #4f8ef7; }
+    .os-footer .page-info { font-size: 9px; color: #aaa; }
+    @media print { body { padding-bottom: 40px; } }
+    @media print { body { padding: 16px 20px; } }
+  </style></head><body>
+
+  <!-- CABEÇALHO -->
+  <div class="os-header">
+    <div class="brand">
+      <h1>Controle de <span>Horas</span></h1>
+      <small>${empresa}${nome ? ' · ' + nome : ''}</small>
+    </div>
+
+  </div>
+
+  <!-- CLIENTE -->
+  <div class="section">
+    <div class="section-title">Dados do Cliente</div>
+    <div class="grid grid-3">
+      <div class="field"><label>Código</label><span>${codCliente}</span></div>
+      <div class="field"><label>Cliente</label><span>${nomeCliente}</span></div>
+      <div class="field"><label>Contato</label><span>${contatoCli}</span></div>
+      <div class="field"><label>E-mail</label><span>${emailCli}</span></div>
+      <div class="field"><label>Telefone</label><span>${telCli}</span></div>
+      <div class="field"><label>Data do Atendimento</label><span>${diaSem}, ${dataFmt}</span></div>
+    </div>
+  </div>
+
+  <!-- HORÁRIOS -->
+  <div class="section">
+    <div class="section-title">Horários do Atendimento</div>
+    <div class="grid grid-4">
+      <div class="hours-box"><div class="lbl">Período 1</div><div class="val">${p1}</div></div>
+      <div class="hours-box"><div class="lbl">Período 2</div><div class="val">${p2}</div></div>
+      <div class="hours-box"><div class="lbl">Translado</div><div class="val">${r.tsl || '00:00'}</div></div>
+      <div class="hours-box accent"><div class="lbl">Total Trabalhado</div><div class="val">${minToTime(tot)}</div></div>
+    </div>
+  </div>
+
+  <!-- DESCRIÇÃO DOS SERVIÇOS -->
+  <div class="section">
+    <div class="section-title">Descrição dos Serviços Prestados</div>
+    <div class="desc-box">${descHtml}</div>
+  </div>
+
+  <!-- OBSERVAÇÕES -->
+  <div class="section">
+    <div class="section-title">Observações</div>
+    <div class="field"><span>${obsHtml}</span></div>
+  </div>
+
+  <!-- ASSINATURAS -->
+  <div class="sign-row">
+    <div class="sign-line">Assinatura do Prestador<br>${nome || empresa}</div>
+    <div class="sign-line">Assinatura do Cliente / Responsável<br>${nomeCliente}</div>
+  </div>
+
+  <!-- RODAPÉ -->
+  <div class="os-footer">
+    <div class="brand-foot">Controle de <span>Horas</span> <span style="color:#aaa;font-weight:400;font-size:9px">· ${empresa}</span></div>
+    <div class="page-info" id="os-page-info">Página 1</div>
+  </div>
+
+  <scr` + `ipt>
+    window.onload = () => {
+      // tenta obter total de páginas após layout
+      setTimeout(() => {
+        const totalPages = Math.ceil(document.body.scrollHeight / (window.innerHeight || 1100));
+        const el = document.getElementById('os-page-info');
+        if (el) el.textContent = 'Página 1 / ' + (totalPages > 0 ? totalPages : 1);
+        window.print();
+      }, 300);
+    };
+  </scr` + `ipt>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { toast('Permita pop-ups para gerar a OS', 'error'); return; }
+  w.document.write(html);
+  w.document.close();
+}
+
+// ============================================================
+// IMPRESSÃO EM LOTE DE OS
+// ============================================================
+
+// Retorna o HTML completo de uma única OS (sem o <script> de print automático)
+function _osHtmlBody(r) {
+  const empresa = db.config.empresa || '';
+  const nome    = db.config.nome    || '';
+  const vh      = valorHoraDoRegistro(r, db.config.valorHora || 0);
+  const tot     = calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl);
+
+  const cli = (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r.codigo || '').toLowerCase());
+  const nomeCliente = cli ? cli.nome       : (r.clientes || '—');
+  const codCliente  = r.codigo || '—';
+  const contatoCli  = cli ? (cli.contato  || '—') : '—';
+  const emailCli    = cli ? (cli.email    || '—') : '—';
+  const telCli      = cli ? (cli.telefone || '—') : '—';
+
+  const p1 = (r.p1i && r.p1f) ? `${r.p1i} – ${r.p1f}` : '—';
+  const p2 = (r.p2i && r.p2f && r.p2i !== '00:00') ? `${r.p2i} – ${r.p2f}` : '—';
+
+  const descHtml = r.desc
+    ? r.desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')
+    : '<span style="color:#999">Não informado</span>';
+  const obsHtml  = r.obs || '—';
+  const osNum    = String(r.id).slice(-6).padStart(6,'0');
+  const dataFmt  = formatDate(r.data);
+  const diaSem   = getDiaSemana(r.data);
+
+  return `
+  <div class="os-page">
+    <div class="os-header">
+      <div class="brand">
+        <h1>Controle de <span>Horas</span></h1>
+        <small>${empresa}${nome ? ' · ' + nome : ''}</small>
+      </div>
+
+    </div>
+    <div class="section">
+      <div class="section-title">Dados do Cliente</div>
+      <div class="grid grid-3">
+        <div class="field"><label>Código</label><span>${codCliente}</span></div>
+        <div class="field"><label>Cliente</label><span>${nomeCliente}</span></div>
+        <div class="field"><label>Contato</label><span>${contatoCli}</span></div>
+        <div class="field"><label>E-mail</label><span>${emailCli}</span></div>
+        <div class="field"><label>Telefone</label><span>${telCli}</span></div>
+        <div class="field"><label>Data do Atendimento</label><span>${diaSem}, ${dataFmt}</span></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Horários do Atendimento</div>
+      <div class="grid grid-4">
+        <div class="hours-box"><div class="lbl">Período 1</div><div class="val">${p1}</div></div>
+        <div class="hours-box"><div class="lbl">Período 2</div><div class="val">${p2}</div></div>
+        <div class="hours-box"><div class="lbl">Translado</div><div class="val">${r.tsl || '00:00'}</div></div>
+        <div class="hours-box accent"><div class="lbl">Total Trabalhado</div><div class="val">${minToTime(tot)}</div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Descrição dos Serviços Prestados</div>
+      <div class="desc-box">${descHtml}</div>
+    </div>
+    <div class="section">
+      <div class="section-title">Observações</div>
+      <div class="field"><span>${obsHtml}</span></div>
+    </div>
+    <div class="sign-row">
+      <div class="sign-line">Assinatura do Prestador<br>${nome || empresa}</div>
+      <div class="sign-line">Assinatura do Cliente / Responsável<br>${nomeCliente}</div>
+    </div>
+  </div>`;
+}
+
+let _osLoteRegistros = [];
+
+function _filtrarOSLote() {
+  const de  = document.getElementById('os-data-de').value;
+  const ate = document.getElementById('os-data-ate').value;
+  const cliDe  = (document.getElementById('os-cli-de').value  || '').trim().toLowerCase();
+  const cliAte = (document.getElementById('os-cli-ate').value || '').trim().toLowerCase();
+  const consultoriaFiltro = (document.getElementById('os-consultoria').value || '').trim();
+
+  let clientesConsultoria = null;
+  if (consultoriaFiltro) {
+    clientesConsultoria = new Set(
+      (db.clientes||[])
+        .filter(c => (c.consultoriaCodigo||'') === consultoriaFiltro)
+        .map(c => (c.codigo||'').toLowerCase())
+    );
+  }
+
+  return db.registros.filter(r => {
+    if (de  && r.data < de)  return false;
+    if (ate && r.data > ate) return false;
+    const chave = (r.codigo || r.clientes || '').toLowerCase();
+    if (cliDe  && chave < cliDe)  return false;
+    if (cliAte && chave > cliAte) return false;
+    if (clientesConsultoria !== null && !clientesConsultoria.has(chave)) return false;
+    return true;
+  }).sort((a,b) => a.data.localeCompare(b.data) || (a.clientes||a.codigo||'').localeCompare(b.clientes||b.codigo||''));
+}
+
+function acOsConsultoria(val) {
+  const q = val.trim().toLowerCase();
+  const lista = [...(db.consultorias||[])]
+    .filter(c => !q ||
+      (c.codigo||'').toLowerCase().includes(q) ||
+      (c.nome||'').toLowerCase().includes(q))
+    .sort((a,b) => (a.codigo||'').localeCompare(b.codigo||'','pt-BR',{numeric:true}));
+
+  const el = document.getElementById('ac-os-consultoria');
+  if (!el) return;
+  el.innerHTML = '';
+
+  if (!q) {
+    const all = document.createElement('div');
+    all.className = 'ac-item';
+    all.innerHTML = '<span class="ac-cod" style="color:var(--muted)">—</span><span class="ac-nome" style="color:var(--muted)">Todas</span>';
+    all.addEventListener('mousedown', () => {
+      document.getElementById('os-consultoria-input').value = '';
+      document.getElementById('os-consultoria').value = '';
+      fecharAc('ac-os-consultoria');
+    });
+    el.appendChild(all);
+  }
+
+  if (!lista.length && q) { el.style.display = 'none'; document.getElementById('os-consultoria').value = ''; return; }
+
+  lista.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'ac-item';
+    div.innerHTML = `<span class="ac-cod">${escapeHtml(c.codigo||c.id)}</span><span class="ac-nome">${escapeHtml(c.nome)}</span>`;
+    div.addEventListener('mousedown', () => {
+      document.getElementById('os-consultoria-input').value = c.codigo || c.id;
+      document.getElementById('os-consultoria').value = c.codigo || c.id;
+      fecharAc('ac-os-consultoria');
+    });
+    el.appendChild(div);
+  });
+  el.style.display = 'block';
+}
+
+function previewOSLote() {
+  // mantido para compatibilidade com oninput dos filtros de data
+}
+
+function osLoteToggleAll(checked) {}
+
+function imprimirOSLote() {
+  const selecionados = _filtrarOSLote();
+
+  if (!selecionados.length) { toast('Nenhuma OS encontrada com esses filtros', 'error'); return; }
+
+  const corpos = selecionados.map(r => _osHtmlBody(r)).join('');
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>OS em Lote — ${selecionados.length} registros</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; color: #111; font-size: 12px; }
+    .os-page { padding: 28px 32px; page-break-after: always; min-height: 100vh; position: relative; padding-bottom: 60px; }
+    .os-page:last-child { page-break-after: avoid; }
+    .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 18px; }
+    .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+    .os-header .brand h1 span { color: #4f8ef7; }
+    .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
+    .os-meta { text-align: right; }
+    .os-meta .os-num { font-size: 18px; font-weight: 700; color: #4f8ef7; }
+    .os-meta .os-date { font-size: 11px; color: #555; margin-top: 2px; }
+    .section { margin-bottom: 16px; }
+    .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #777; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 10px; }
+    .grid { display: grid; gap: 10px; }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .field label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; }
+    .field span  { font-size: 12px; font-weight: 600; color: #111; }
+    .hours-box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; text-align: center; }
+    .hours-box .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; }
+    .hours-box .val { font-size: 20px; font-weight: 700; color: #111; margin-top: 2px; }
+    .hours-box.accent .val { color: #4f8ef7; }
+    .desc-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px 14px; min-height: 80px; line-height: 1.65; color: #222; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding-top: 16px; }
+    .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
+    @media print { @page { margin: 0; } body { -webkit-print-color-adjust: exact; } }
+  </style></head><body>
+  ${corpos}
+  <scr` + `ipt>window.onload = () => setTimeout(() => window.print(), 300);</scr` + `ipt>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { toast('Permita pop-ups para imprimir as OS', 'error'); return; }
+  w.document.write(html);
+  w.document.close();
+  toast(`${selecionados.length} OS enviadas para impressão!`);
+}
+
+// ============================================================
+// RELATÓRIO DE APONTAMENTOS (LISTA) EM PDF
+// ============================================================
+function acApConsultoria(val) {
+  const q = val.trim().toLowerCase();
+  const lista = [...(db.consultorias||[])]
+    .filter(c => !q ||
+      (c.codigo||'').toLowerCase().includes(q) ||
+      (c.nome||'').toLowerCase().includes(q))
+    .sort((a,b) => (a.codigo||'').localeCompare(b.codigo||'','pt-BR',{numeric:true}));
+
+  const el = document.getElementById('ac-ap-consultoria');
+  if (!el) return;
+  el.innerHTML = '';
+
+  if (!q) {
+    const all = document.createElement('div');
+    all.className = 'ac-item';
+    all.innerHTML = '<span class="ac-cod" style="color:var(--muted)">—</span><span class="ac-nome" style="color:var(--muted)">Todas</span>';
+    all.addEventListener('mousedown', () => {
+      document.getElementById('ap-consultoria-input').value = '';
+      document.getElementById('ap-consultoria').value = '';
+      fecharAc('ac-ap-consultoria');
+    });
+    el.appendChild(all);
+  }
+
+  if (!lista.length && q) { el.style.display = 'none'; document.getElementById('ap-consultoria').value = ''; return; }
+
+  lista.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'ac-item';
+    div.innerHTML = `<span class="ac-cod">${escapeHtml(c.codigo||c.id)}</span><span class="ac-nome">${escapeHtml(c.nome)}</span>`;
+    div.addEventListener('mousedown', () => {
+      document.getElementById('ap-consultoria-input').value = c.codigo || c.id;
+      document.getElementById('ap-consultoria').value = c.codigo || c.id;
+      fecharAc('ac-ap-consultoria');
+    });
+    el.appendChild(div);
+  });
+  el.style.display = 'block';
+}
+
+// Filtra os registros usando os mesmos critérios das outras telas de PDF
+// (Data De/Até, Cliente De/Até por código, Consultoria).
+function _filtrarRelatorioApontamentos() {
+  const dataDe  = document.getElementById('ap-data-de').value;
+  const dataAte = document.getElementById('ap-data-ate').value;
+  const cliDe   = (document.getElementById('ap-cli-de').value  || '').trim().toLowerCase();
+  const cliAte  = (document.getElementById('ap-cli-ate').value || '').trim().toLowerCase();
+  const consultoriaFiltro = (document.getElementById('ap-consultoria').value || '').trim();
+
+  let clientesConsultoria = null;
+  if (consultoriaFiltro) {
+    clientesConsultoria = new Set(
+      (db.clientes||[])
+        .filter(c => (c.consultoriaCodigo||'') === consultoriaFiltro)
+        .map(c => (c.codigo||'').toLowerCase())
+    );
+  }
+
+  return db.registros.filter(r => {
+    if (dataDe  && r.data < dataDe)  return false;
+    if (dataAte && r.data > dataAte) return false;
+    const chave = (r.codigo || r.clientes || '').toLowerCase();
+    if (cliDe  && chave < cliDe)  return false;
+    if (cliAte && chave > cliAte) return false;
+    if (clientesConsultoria !== null && !clientesConsultoria.has(chave)) return false;
+    return true;
+  }).sort((a,b) => a.data.localeCompare(b.data) || (a.codigo||a.clientes||'').localeCompare(b.codigo||b.clientes||''));
+}
+
+function gerarRelatorioApontamentosPDF() {
+  const dataDe  = document.getElementById('ap-data-de').value;
+  const dataAte = document.getElementById('ap-data-ate').value;
+
+  if (!dataDe || !dataAte) {
+    toast('Informe a Data De e a Data Até', 'error');
+    return;
+  }
+  if (dataDe > dataAte) {
+    toast('A Data De não pode ser maior que a Data Até', 'error');
+    return;
+  }
+
+  const regs = _filtrarRelatorioApontamentos();
+  if (!regs.length) {
+    toast('Nenhum apontamento encontrado com esses filtros', 'error');
+    return;
+  }
+
+  const empresa = db.config.empresa || '';
+  const nome    = db.config.nome    || '';
+  const periodoLabel = `${formatDate(dataDe)} a ${formatDate(dataAte)}`;
+
+  let totalMin = 0;
+
+  const linhas = regs.map(r => {
+    const cli = (db.clientes || []).find(c => (c.codigo||'').toLowerCase() === (r.codigo||'').toLowerCase());
+    const descricaoCliente = cli ? cli.nome : (r.clientes || '—');
+
+    const temP2 = !!(r.p2i && r.p2f && r.p2i !== '00:00');
+    const hrInicial = r.p1i || '—';
+    const hrFinal    = temP2 ? r.p2f : r.p1f;
+    // Desconto = intervalo entre o fim do Período 1 e o início do Período 2 (ex: almoço)
+    const descontoMin = temP2 ? Math.max(0, timeToMin(r.p2i) - timeToMin(r.p1f)) : 0;
+    const translado   = r.tsl || '00:00';
+    const totalMinReg  = calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl);
+
+    totalMin += totalMinReg;
+
+    return `<tr>
+      <td>${formatDate(r.data)}</td>
+      <td>${r.codigo || '—'}</td>
+      <td class="desc-cli">${escapeHtml(descricaoCliente)}</td>
+      <td class="mono center">${hrInicial}</td>
+      <td class="mono center">${hrFinal || '—'}</td>
+      <td class="mono center">${minToTime(descontoMin)}</td>
+      <td class="mono center">${translado}</td>
+      <td class="mono center total-col">${minToTime(totalMinReg)}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Relatório de Apontamentos — ${periodoLabel}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; color: #111; font-size: 12px; padding: 28px 32px; }
+
+    .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 20px; }
+    .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+    .os-header .brand h1 span { color: #4f8ef7; }
+    .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
+    .os-meta { text-align: right; }
+    .os-meta .periodo { font-size: 16px; font-weight: 700; color: #4f8ef7; }
+    .os-meta .sub { font-size: 11px; color: #555; margin-top: 2px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    thead th { background: #f5f5f5; border: 1px solid #e0e0e0; padding: 8px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #555; }
+    thead th.center, td.center { text-align: center; }
+    tbody td { border: 1px solid #eee; padding: 8px; vertical-align: middle; }
+    tbody tr:nth-child(even) td { background: #fafafa; }
+    tbody tr:last-child td { border-bottom: 1px solid #ddd; }
+    .desc-cli { color: #2563eb; font-weight: 600; }
+    .total-col { font-weight: 700; }
+    tfoot td { border: 1px solid #e0e0e0; padding: 9px 8px; font-weight: 700; background: #f5f5f5; font-size: 11px; }
+
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; }
+    .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
+
+    @media print { body { padding: 16px 20px; } @page { margin: 0; } thead { display: table-header-group; } }
+  </style></head><body>
+    <div class="os-header">
+      <div class="brand">
+        <h1>Controle de <span>Horas</span></h1>
+        <small>${escapeHtml(empresa)}</small>
+      </div>
+      <div class="os-meta">
+        <div class="periodo">Relatório de Apontamentos</div>
+        <div class="sub">${periodoLabel}</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th><th>Código</th><th>Descrição Cliente</th>
+          <th class="center">Hr. Inicial</th><th class="center">Hr. Final</th>
+          <th class="center">Desconto</th><th class="center">Traslado</th><th class="center">Total</th>
+        </tr>
+      </thead>
+      <tbody>${linhas}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="7" style="text-align:right">Total</td>
+          <td class="center">${minToTime(totalMin)}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="sign-row">
+      <div class="sign-line">Assinatura do Prestador<br>${escapeHtml(nome || empresa)}</div>
+      <div class="sign-line">Assinatura do Responsável / Cliente</div>
+    </div>
+
+  <scr` + `ipt>window.onload = () => setTimeout(() => window.print(), 300);</scr` + `ipt>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { toast('Permita pop-ups para gerar o PDF', 'error'); return; }
+  w.document.write(html);
+  w.document.close();
+  toast('Relatório gerado!');
+}
+
+// ============================================================
+async function limparBanco() {
+  const ok = await confirmDialog('Limpar TODOS os dados? Isso não pode ser desfeito.', 'Limpar banco de dados', 'Limpar tudo');
+  if (!ok) return;
+  db.registros = [];
+  salvarDB();
+  toast('Banco limpo','success');
+  renderAll();
+}
+
+function exportarJSON() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `_${getISODate(new Date())}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('JSON exportado!');
+}
+
+function exportarCSV() {
+  const header = 'Data,Dia,P1 Inicio,P1 Fim,P2 Inicio,P2 Fim,Translado,Total Horas,Alimentação,Transporte,Clientes,Observações\n';
+  const rows = db.registros.map(r => {
+    const tot = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+    return [formatDate(r.data), getDiaSemana(r.data), r.p1i, r.p1f, r.p2i, r.p2f, r.tsl,
+            minToTime(tot), r.alim||0, r.transp||0, r.clientes||'', r.obs||''].join(',');
+  }).join('\n');
+  const blob = new Blob(['\uFEFF' + header + rows], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `_${getISODate(new Date())}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('CSV exportado!');
+}
+
+function importarJSON() {
+  document.getElementById('import-file').click();
+}
+
+function importarArquivo(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.registros) throw new Error('Formato inválido');
+      const ok = await confirmDialog(`Importar ${data.registros.length} registros? Os dados atuais serão substituídos.`, 'Importar dados', 'Importar');
+      if (!ok) return;
+      db = data;
+      salvarDB();
+      toast(`${db.registros.length} registros importados!`);
+      renderAll();
+    } catch(err) {
+      toast('Arquivo inválido: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ============================================================
+function renderAll() {
+  renderDashboard();
+}
+
+// ============================================================
+// RELATÓRIOS
+// ============================================================
+function initRelatorios() {
+  // Popula seletor de ano
+  const anos = [...new Set(db.registros.map(r => r.data.slice(0,4)))].sort().reverse();
+  const anoAtual = String(new Date().getFullYear());
+  if (!anos.includes(anoAtual)) anos.unshift(anoAtual);
+  const selAno = document.getElementById('rel-ano');
+  selAno.innerHTML = anos.map(a => `<option value="${a}"${a===anoAtual?' selected':''}>${a}</option>`).join('');
+
+  // Popula seletor de mês
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const selMes = document.getElementById('rel-mes-filtro');
+  selMes.innerHTML = '<option value="">Todos os meses</option>' +
+    meses.map((m,i) => `<option value="${i}">${m}</option>`).join('');
+
+  // Popula seletor de clientes
+  const clienteNomes = [...new Set(db.registros.map(r => r.clientes || r.codigo || '').filter(Boolean))].sort();
+  const selCli = document.getElementById('rel-cliente-filtro');
+  selCli.innerHTML = '<option value="">Todos os clientes</option>' +
+    clienteNomes.map(n => `<option value="${n}">${n}</option>`).join('');
+
+  renderRelatorios();
+}
+
+function relFiltrarRegistros() {
+  const ano = document.getElementById('rel-ano').value;
+  const mesVal = document.getElementById('rel-mes-filtro').value;
+  const cliVal = document.getElementById('rel-cliente-filtro').value;
+
+  return db.registros.filter(r => {
+    const d = new Date(r.data + 'T00:00:00');
+    if (r.data.slice(0,4) !== ano) return false;
+    if (mesVal !== '' && d.getMonth() !== parseInt(mesVal)) return false;
+    if (cliVal && (r.clientes || r.codigo || '') !== cliVal) return false;
+    return true;
+  });
+}
+
+function renderRelatorios() {
+  const tipo = document.getElementById('rel-tipo').value;
+  const regs = relFiltrarRegistros();
+  const fmt2 = v => 'R$\u00a0' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  if (tipo === 'mensal') renderRelMensal(regs, fmt2);
+  else if (tipo === 'cliente') renderRelCliente(regs, fmt2);
+  else renderRelDiario(regs, fmt2);
+}
+
+function relBarChart(dados, labelKey, valKey, labelFn) {
+  // dados: [{label, val, min}]
+  const maxVal = Math.max(...dados.map(d => d.val), 1);
+  const bars = dados.map(d => {
+    const pct = Math.round((d.val / maxVal) * 140);
+    const isHigh = d.val === maxVal;
+    return `<div class="rel-bar-col${isHigh?' highlight':''}">
+      <div class="rel-bar-val">${labelFn(d)}</div>
+      <div class="rel-bar" style="height:${Math.max(pct,2)}px"></div>
+      <div class="rel-bar-label" title="${d.label}">${d.label}</div>
+    </div>`;
+  }).join('');
+  return `<div class="rel-bar-wrap">${bars}</div>`;
+}
+
+function renderRelMensal(regs, fmt2) {
+  document.getElementById('rel-table-title').textContent = '📋 Resumo Mensal';
+
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const mesesFull = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const porMes = meses.map((m,i) => {
+    const r = regs.filter(reg => new Date(reg.data+'T00:00:00').getMonth() === i);
+    const min = r.reduce((a,reg) => a + calcTotal(reg.p1i,reg.p1f,reg.p2i,reg.p2f,reg.tsl),0);
+    const alim = r.reduce((a,reg) => a+(reg.alim||0),0);
+    const transp = r.reduce((a,reg) => a+(reg.transp||0),0);
+    return {label:m, labelFull:mesesFull[i], val:min, alim, transp, regs:r, dias: new Set(r.filter(reg=>calcTotal(reg.p1i,reg.p1f,reg.p2i,reg.p2f,reg.tsl)>0).map(reg=>reg.data)).size};
+  }).filter(d => d.val > 0 || d.alim > 0);
+
+  const vh = db.config.valorHora || 0;
+  document.getElementById('rel-thead').innerHTML = `<tr>
+    <th>Mês</th><th>Dias</th><th>Horas</th><th>Faturamento</th><th>Alimentação</th><th>Transporte</th>
+  </tr>`;
+
+  const rows = porMes.map(d => {
+    // Faturamento do mês = soma, por registro, de (minutos * valorHora da
+    // consultoria do cliente daquele registro) / 60 — não um vh único fixo.
+    const fat = d.regs.reduce((a,reg) => {
+      const minReg = calcTotal(reg.p1i,reg.p1f,reg.p2i,reg.p2f,reg.tsl);
+      return a + (minReg * valorHoraDoRegistro(reg, vh)) / 60;
+    }, 0);
+    return `<tr>
+      <td>${d.labelFull}</td>
+      <td class="mono">${d.dias}</td>
+      <td class="mono text-accent">${minToTime(d.val)}</td>
+      <td class="mono text-green">${fat>0 ? 'R$\u00a0'+fat.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td class="mono">${d.alim>0?'R$\u00a0'+d.alim.toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
+      <td class="mono">${d.transp>0?'R$\u00a0'+d.transp.toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('rel-tbody').innerHTML = rows || `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px">Nenhum dado no período</td></tr>`;
+}
+
+function renderRelCliente(regs, fmt2) {
+  document.getElementById('rel-table-title').textContent = '📋 Resumo por Cliente';
+
+  const mapa = {};
+  regs.forEach(r => {
+    const key = r.clientes || r.codigo || 'Sem cliente';
+    if (!mapa[key]) mapa[key] = {label:key, val:0, alim:0, transp:0, dias:new Set(), regs:[]};
+    const min = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+    mapa[key].val += min;
+    mapa[key].alim += (r.alim||0);
+    mapa[key].transp += (r.transp||0);
+    mapa[key].regs.push(r);
+    if (min > 0) mapa[key].dias.add(r.data);
+  });
+  const dados = Object.values(mapa).sort((a,b) => b.val - a.val);
+
+  const vh = db.config.valorHora || 0;
+  document.getElementById('rel-thead').innerHTML = `<tr>
+    <th>Cliente</th><th>Dias</th><th>Apontamentos</th><th>Horas</th><th>Faturamento</th><th>Alimentação</th><th>Transporte</th>
+  </tr>`;
+
+  const rows = dados.map(d => {
+    // Faturamento do cliente = soma, por registro, de (minutos * valorHora da
+    // consultoria vinculada ao cliente daquele registro) / 60.
+    const fat = d.regs.reduce((a,reg) => {
+      const minReg = calcTotal(reg.p1i,reg.p1f,reg.p2i,reg.p2f,reg.tsl);
+      return a + (minReg * valorHoraDoRegistro(reg, vh)) / 60;
+    }, 0);
+    const pct = dados[0].val > 0 ? Math.round((d.val/dados[0].val)*100) : 0;
+    return `<tr>
+      <td style="font-weight:600">${d.label}</td>
+      <td class="mono">${d.dias.size}</td>
+      <td class="mono">${d.regs.length}</td>
+      <td class="mono text-accent">${minToTime(d.val)} <span style="font-size:10px;color:var(--muted)">(${pct}%)</span></td>
+      <td class="mono text-green">${fat>0?'R$\u00a0'+fat.toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
+      <td class="mono">${d.alim>0?'R$\u00a0'+d.alim.toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
+      <td class="mono">${d.transp>0?'R$\u00a0'+d.transp.toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('rel-tbody').innerHTML = rows || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">Nenhum dado no período</td></tr>`;
+}
+
+function renderRelDiario(regs, fmt2) {
+  document.getElementById('rel-table-title').textContent = '📋 Registros Detalhados';
+
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  document.getElementById('rel-thead').innerHTML = `<tr>
+    <th>Data</th><th>Dia</th><th>Cliente</th><th>Total</th><th>Extra</th><th>Aliment.</th><th>Transp.</th><th>Obs.</th>
+  </tr>`;
+
+  const sorted = [...regs].sort((a,b) => b.data.localeCompare(a.data));
+  const rows = sorted.map(r => {
+    const min = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+    const ext = calcExtra(r);
+    const dow = new Date(r.data+'T00:00:00').getDay();
+    return `<tr>
+      <td class="mono">${formatDate(r.data)}</td>
+      <td><span class="badge badge-gray">${dias[dow]}</span></td>
+      <td style="font-weight:600">${r.clientes||r.codigo||'—'}</td>
+      <td class="mono text-accent">${minToTime(min)}</td>
+      <td class="mono ${ext>0?'text-green':ext<0?'':'text-muted'}">${ext!==0?minToTimeSigned(ext):'<span style="color:var(--muted)">—</span>'}</td>
+      <td class="mono">${(r.alim||0)>0?'R$\u00a0'+(r.alim).toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
+      <td class="mono">${(r.transp||0)>0?'R$\u00a0'+(r.transp).toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
+      <td style="font-size:12px;color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.obs||''}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('rel-tbody').innerHTML = rows || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">Nenhum dado no período</td></tr>`;
+}
+
+function exportarRelatorioCSV() {
+  const tipo = document.getElementById('rel-tipo').value;
+  const regs = relFiltrarRegistros();
+  let csv = '';
+  if (tipo === 'mensal') {
+    csv = 'Mês;Dias;Horas (min);Faturamento;Alimentação;Transporte\n';
+    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    meses.forEach((m,i) => {
+      const r = regs.filter(reg => new Date(reg.data+'T00:00:00').getMonth()===i);
+      const min = r.reduce((a,reg)=>a+calcTotal(reg.p1i,reg.p1f,reg.p2i,reg.p2f,reg.tsl),0);
+      if (min>0) {
+        const dias = new Set(r.filter(reg=>calcTotal(reg.p1i,reg.p1f,reg.p2i,reg.p2f,reg.tsl)>0).map(reg=>reg.data)).size;
+        const vh = db.config.valorHora||0;
+        // Faturamento ponderado: soma por registro de (minutos * valorHora da consultoria do cliente)/60
+        const fat = r.reduce((a,reg) => {
+          const minReg = calcTotal(reg.p1i,reg.p1f,reg.p2i,reg.p2f,reg.tsl);
+          return a + (minReg * valorHoraDoRegistro(reg, vh)) / 60;
+        }, 0);
+        csv += `${m};${dias};${minToTime(min)};${fat.toFixed(2)};${r.reduce((a,reg)=>a+(reg.alim||0),0).toFixed(2)};${r.reduce((a,reg)=>a+(reg.transp||0),0).toFixed(2)}\n`;
+      }
+    });
+  } else if (tipo === 'cliente') {
+    csv = 'Cliente;Dias;Apontamentos;Horas;Alimentação;Transporte\n';
+    const mapa = {};
+    regs.forEach(r => {
+      const k = r.clientes||r.codigo||'Sem cliente';
+      if (!mapa[k]) mapa[k]={val:0,alim:0,transp:0,dias:new Set(),regs:0};
+      const min=calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+      mapa[k].val+=min; mapa[k].alim+=(r.alim||0); mapa[k].transp+=(r.transp||0); mapa[k].regs++;
+      if(min>0) mapa[k].dias.add(r.data);
+    });
+    Object.entries(mapa).sort((a,b)=>b[1].val-a[1].val).forEach(([k,d]) => {
+      csv += `${k};${d.dias.size};${d.regs};${minToTime(d.val)};${d.alim.toFixed(2)};${d.transp.toFixed(2)}\n`;
+    });
+  } else {
+    csv = 'Data;Dia;Cliente;Total;Extra;Alimentação;Transporte;Obs\n';
+    [...regs].sort((a,b)=>b.data.localeCompare(a.data)).forEach(r => {
+      const dow=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][new Date(r.data+'T00:00:00').getDay()];
+      const min=calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+      csv += `${formatDate(r.data)};${dow};${r.clientes||r.codigo||''};${minToTime(min)};${minToTimeSigned(calcExtra(r))};${(r.alim||0).toFixed(2)};${(r.transp||0).toFixed(2)};${(r.obs||'').replace(/;/g,',')}\n`;
+    });
+  }
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`relatorio_${tipo}_${document.getElementById('rel-ano').value}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('CSV exportado!');
+}
+
+// ============================================================
+
+// ============================================================
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  // fechamento apenas via botões Cancelar/Salvar
+});
+
+document.getElementById('modal-apontamento-overlay').addEventListener('click', function(e) {
+  // fechamento apenas via botões Cancelar/Salvar
+});
+
+document.getElementById('form-cliente-overlay').addEventListener('click', function(e) {
+  if (e.target === this) fecharFormCliente();
+});
+document.getElementById('form-consultoria-overlay').addEventListener('click', function(e) {
+  if (e.target === this) fecharFormConsultoria();
+});
+
+function abrirFatParams() {
+  // popula com valores atuais dos inputs (já carregados pelo initFaturamento)
+  document.getElementById('fat-params-overlay').classList.add('open');
+}
+function fecharFatParams() {
+  document.getElementById('fat-params-overlay').classList.remove('open');
+}
+function aplicarFatParams() {
+  fecharFatParams();
+  renderFaturamento();
+}
+
+// ============================================================
+// FATURAMENTO ANUAL
+// ============================================================
+let fatAno = new Date().getFullYear();
+
+// Retorna o valorHora a aplicar a um registro específico:
+// busca o cliente do registro (via r.codigo), depois a consultoria
+// vinculada a esse cliente (via cliente.consultoriaCodigo) e usa o
+// valorHora da consultoria. Se não houver cliente/consultoria/valor
+// configurado, cai no valor padrão (fallbackVh = db.config.valorHora).
+function valorHoraDoRegistro(r, fallbackVh) {
+  const cli = (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r.codigo || '').toLowerCase());
+  if (cli && cli.consultoriaCodigo) {
+    const con = (db.consultorias || []).find(x => (x.codigo || x.id) === cli.consultoriaCodigo);
+    if (con && con.valorHora) return Number(con.valorHora);
+  }
+  return fallbackVh;
+}
+
+function initFaturamento() {
+  document.getElementById('fat-vh').value       = db.config.valorHora      || 0;
+  document.getElementById('fat-contador').value = db.config.custoContador  || 0;
+  document.getElementById('fat-gps').value      = db.config.custosExtras   || 0;
+  document.getElementById('fat-imp').value      = db.config.percImposto    ?? 6;
+  document.getElementById('fat-outros').value   = 0;
+}
+
+function renderFaturamento() {
+  document.getElementById('fat-ano-label').textContent = fatAno;
+  document.getElementById('fat-subtitle').textContent  = 'Ano ' + fatAno;
+
+  const vh       = parseFloat(document.getElementById('fat-vh').value)       || 0;
+  const percImp  = parseFloat(document.getElementById('fat-imp').value)      || 0;
+  const contador = parseFloat(document.getElementById('fat-contador').value) || 0;
+  const gps      = parseFloat(document.getElementById('fat-gps').value)      || 0;
+  const outros   = parseFloat(document.getElementById('fat-outros').value)   || 0;
+
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  const nowM = new Date().getMonth();
+  const nowY = new Date().getFullYear();
+
+  let totMin = 0, totFat = 0, totImp = 0, totCont = 0, totGps = 0, totAlim = 0, totTransp = 0, totLiq = 0;
+
+  const tbodyRows = meses.map((nome, i) => {
+    const regs = db.registros.filter(r => {
+      const d = new Date(r.data + 'T00:00:00');
+      return d.getMonth() === i && d.getFullYear() === fatAno;
+    });
+    const minMes  = regs.reduce((a,r) => a + calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl), 0);
+    const alimMes = regs.reduce((a,r) => a + (r.alim||0), 0);
+    const transpMes = regs.reduce((a,r) => a + (r.transp||0), 0);
+    const horas   = minMes / 60;
+    // Faturamento do mês = soma, por registro, de (minutos do registro * valorHora
+    // da consultoria do cliente daquele registro) / 60. Cada registro pode ter um
+    // valor-hora diferente, conforme a consultoria do cliente apontado em r.codigo.
+    const fat = regs.reduce((a,r) => {
+      const minReg = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+      const vhReg  = valorHoraDoRegistro(r, vh);
+      return a + (minReg * vhReg) / 60;
+    }, 0);
+    // Valor-hora médio ponderado do mês (exibido na coluna "Valor Hora")
+    const vhMedioMes = horas > 0 ? (fat / horas) : vh;
+    const imp     = fat * (percImp / 100);
+    const contM   = minMes > 0 ? contador : 0;
+    const gpsM    = minMes > 0 ? gps      : 0;
+    const liq     = fat - imp - contM - gpsM - (minMes > 0 ? outros : 0);
+
+    totMin   += minMes;
+    totFat   += fat;
+    totImp   += imp;
+    totCont  += contM;
+    totGps   += gpsM;
+    totAlim  += alimMes;
+    totTransp += transpMes;
+    totLiq   += liq;
+
+    const isCur = (i === nowM && fatAno === nowY);
+    const zero  = v => v === 0 ? '<span class="zero">—</span>' : 'R$&nbsp;' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const horasTxt = minMes > 0 ? minToTime(minMes) : '<span class="zero">0:00:00</span>';
+    return `<tr${isCur?' class="cur-month"':''}>
+      <td>${nome}</td>
+      <td>${horasTxt}</td>
+      <td>R$&nbsp;${vhMedioMes.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+      <td class="${fat>0?'pos':''}">${zero(fat)}</td>
+      <td class="${imp>0?'neg':''}">${zero(imp)}</td>
+      <td class="${contM>0?'neg':''}">${zero(contM)}</td>
+      <td class="${gpsM>0?'neg':''}">${zero(gpsM)}</td>
+      <td>${zero(alimMes)}</td>
+      <td>${zero(transpMes)}</td>
+      <td class="${liq>0?'pos':liq<0?'neg':''}">${zero(liq)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('fat-tbody').innerHTML = tbodyRows;
+
+  const zeroTot = v => v === 0 ? '<span class="zero">—</span>' : 'R$&nbsp;' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('fat-tfoot').innerHTML = `<tr>
+    <td colspan="3" style="text-align:right;color:var(--muted);font-family:'Syne',sans-serif">Total</td>
+    <td class="${totFat>0?'pos':''}">${zeroTot(totFat)}</td>
+    <td class="${totImp>0?'neg':''}">${zeroTot(totImp)}</td>
+    <td class="${totCont>0?'neg':''}">${zeroTot(totCont)}</td>
+    <td class="${totGps>0?'neg':''}">${zeroTot(totGps)}</td>
+    <td>${zeroTot(totAlim)}</td>
+    <td>${zeroTot(totTransp)}</td>
+    <td class="${totLiq>0?'pos':totLiq<0?'neg':''}">${zeroTot(totLiq)}</td>
+  </tr>`;
+
+  // Cards de resumo anual
+  const diasTrabAno = db.registros.filter(r => {
+    return r.data.slice(0,4) === String(fatAno) && calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl) > 0;
+  }).length;
+  const fmt2 = v => 'R$\u00a0' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  // Valor-hora médio ponderado do ano todo = faturamento total / horas totais
+  const vhMedioAno = totMin > 0 ? (totFat / (totMin / 60)) : vh;
+  document.getElementById('fat-cards').innerHTML = `
+    <div class="card accent">
+      <div class="label">Horas em ${fatAno}</div>
+      <div class="value">${minToTime(totMin)}</div>
+      <div class="sub-val">${diasTrabAno} dias trabalhados</div>
+    </div>
+    <div class="card green">
+      <div class="label">Valor Total</div>
+      <div class="value" style="font-size:22px">${fmt2(totFat)}</div>
+      <div class="sub-val">@ R$\u00a0${vhMedioAno.toLocaleString('pt-BR',{minimumFractionDigits:2})}/h</div>
+    </div>
+    <div class="card">
+      <div class="label">Alimentação</div>
+      <div class="value" style="font-size:22px">${fmt2(totAlim)}</div>
+      <div class="sub-val">acumulado</div>
+    </div>
+    <div class="card">
+      <div class="label">Transporte</div>
+      <div class="value" style="font-size:22px">${fmt2(totTransp)}</div>
+      <div class="sub-val">acumulado</div>
+    </div>
+  `;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+// A inicialização do app (carregarDB, initForm, renderDashboard) ocorre dentro
+// de iniciarAuthListener(), só depois de confirmado o login do usuário.
+// A chamada fica aqui no final do arquivo (depois de TODAS as declarações de
+// função/variável acima) para evitar "Cannot access X before initialization"
+// em qualquer variável (ex: selectedYear, toastTimer) que o listener de auth
+// possa acabar usando de forma síncrona, dependendo do ambiente/navegador.
+if (window.__firebase) {
+  iniciarAuthListener();
+} else {
+  window.addEventListener('firebase-ready', iniciarAuthListener, { once: true });
+}
+</script>
+</body>
+</html>
