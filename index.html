@@ -705,13 +705,13 @@
         <span class="icon">◎</span> Clientes
       </a>
       <a onclick="showView('consultoria')" data-view="consultoria">
-        <span class="icon">🧩</span> Consultoria
+        <span class="icon">⌬</span> Consultoria
       </a>
       <a onclick="showView('faturamento')" data-view="faturamento">
-        <span class="icon">💰</span> Faturamento
+        <span class="icon">▣</span> Faturamento
       </a>
       <a onclick="showView('relatorios')" data-view="relatorios">
-        <span class="icon">📈</span> Relatórios
+        <span class="icon">▥</span> Relatórios
       </a>
       <a onclick="showView('exportar')" data-view="exportar">
         <span class="icon">⬡</span> Exportar
@@ -1750,7 +1750,7 @@ function fecharModalApontamento() {
 // ============================================================
 // CONFIRM DIALOG (substitui confirm() nativo)
 // ============================================================
-function confirmDialog(msg, title='Confirmar ação', okLabel='Confirmar') {
+function confirmDialog(msg, title='Confirmar ação', okLabel='Confirmar', opts={}) {
   return new Promise(resolve => {
     const overlay = document.getElementById('confirm-overlay');
     document.getElementById('confirm-title').textContent = title;
@@ -1758,9 +1758,11 @@ function confirmDialog(msg, title='Confirmar ação', okLabel='Confirmar') {
     const okBtn = document.getElementById('confirm-ok');
     const cancelBtn = document.getElementById('confirm-cancel');
     okBtn.textContent = okLabel;
+    cancelBtn.style.display = opts.hideCancel ? 'none' : '';
 
     function close(result) {
       overlay.classList.remove('open');
+      cancelBtn.style.display = '';
       okBtn.removeEventListener('click', onOk);
       cancelBtn.removeEventListener('click', onCancel);
       overlay.removeEventListener('click', onOverlay);
@@ -1768,7 +1770,7 @@ function confirmDialog(msg, title='Confirmar ação', okLabel='Confirmar') {
     }
     function onOk() { close(true); }
     function onCancel() { close(false); }
-    function onOverlay(e) { if (e.target === overlay) close(false); }
+    function onOverlay(e) { if (e.target === overlay) close(opts.hideCancel ? true : false); }
 
     okBtn.addEventListener('click', onOk);
     cancelBtn.addEventListener('click', onCancel);
@@ -2576,7 +2578,24 @@ function salvarCliente() {
 async function excluirCliente(id) {
   const c = db.clientes.find(x => x.id === id);
   if (!c) return;
-  const ok = await confirmDialog(`Excluir o cliente "${c.nome}"? O histórico de apontamentos não será afetado.`, 'Excluir cliente', 'Excluir');
+
+  const qtdRegistros = db.registros.filter(r => {
+    if (!r.clientes) return false;
+    const nomes = r.clientes.split(/[/,;]+/).map(n => n.trim().toLowerCase()).filter(Boolean);
+    return nomes.includes(c.nome.trim().toLowerCase());
+  }).length;
+
+  if (qtdRegistros > 0) {
+    await confirmDialog(
+      `Não é possível excluir o cliente "${c.nome}" pois existem ${qtdRegistros} registro(s) de apontamento vinculado(s) a ele. Remova ou reatribua esses registros antes de excluir o cliente.`,
+      'Cliente possui registros',
+      'Entendi',
+      { hideCancel: true }
+    );
+    return;
+  }
+
+  const ok = await confirmDialog(`Excluir o cliente "${c.nome}"? Esta ação não pode ser desfeita.`, 'Excluir cliente', 'Excluir');
   if (!ok) return;
   db.clientes = db.clientes.filter(x => x.id !== id);
   salvarDB();
@@ -2689,7 +2708,21 @@ function salvarConsultoria() {
 async function excluirConsultoria(id) {
   const c = db.consultorias.find(x => x.id === id);
   if (!c) return;
-  const ok = await confirmDialog(`Excluir a consultoria "${c.nome}"?`, 'Excluir consultoria', 'Excluir');
+
+  const clientesVinculados = (db.clientes || []).filter(cl => cl.consultoriaCodigo === (c.codigo || c.id));
+
+  if (clientesVinculados.length > 0) {
+    const nomes = clientesVinculados.map(cl => cl.nome).join(', ');
+    await confirmDialog(
+      `Não é possível excluir a consultoria "${c.nome}" pois existem ${clientesVinculados.length} cliente(s) vinculado(s) a ela (${nomes}). Remova ou reatribua esses clientes antes de excluir a consultoria.`,
+      'Consultoria possui clientes',
+      'Entendi',
+      { hideCancel: true }
+    );
+    return;
+  }
+
+  const ok = await confirmDialog(`Excluir a consultoria "${c.nome}"? Esta ação não pode ser desfeita.`, 'Excluir consultoria', 'Excluir');
   if (!ok) return;
   db.consultorias = db.consultorias.filter(x => x.id !== id);
   salvarDB();
