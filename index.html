@@ -4,25 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Controle de Horas</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d0f14;
-    --surface: #141720;
-    --surface2: #1c2030;
-    --border: #252a3a;
-    --accent: #4f8ef7;
-    --accent2: #7c5ef7;
-    --green: #34d399;
-    --yellow: #fbbf24;
-    --red: #f87171;
-    --text: #e8ecf4;
-    --muted: #6b7592;
-    --radius: 12px;
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181b22;
+    --surface3: #1e2130;
+    --border: #232736;
+    --border2: #2d3348;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --accent-glow: rgba(99,102,241,0.25);
+    --accent2: #a78bfa;
+    --green: #10b981;
+    --green-light: #10b981;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --red-light: #ef4444;
+    --text: #f1f3f9;
+    --text2: #c4cad8;
+    --muted: #5a6380;
+    --radius: 10px;
+    --radius-sm: 7px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -32,7 +44,7 @@
   .app { display: flex; min-height: 100vh; }
   .sidebar {
     width: 240px;
-    background: var(--surface);
+    background: linear-gradient(180deg, #13151e 0%, #0f1118 100%);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -40,32 +52,40 @@
     position: fixed;
     top: 0; left: 0; bottom: 0;
     z-index: 100;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.3);
   }
-  .main { margin-left: 240px; flex: 1; padding: 32px; }
+  .main { margin-left: 240px; flex: 1; padding: 32px 36px; }
   /* ---- SIDEBAR ---- */
   .logo {
     padding: 0 20px 24px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 16px;
   }
-  .logo h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-  .logo span { color: var(--accent); }
-  .logo small { display: block; color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+  .logo h1 { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); }
+  .logo h1 span { color: var(--accent); background: var(--accent-glow); padding: 0 4px; border-radius: 4px; }
+  .logo small { display: block; color: var(--muted); font-size: 10px; font-family: 'JetBrains Mono', monospace; margin-top: 4px; letter-spacing: 0.5px; }
   nav a {
     display: flex; align-items: center; gap: 10px;
-    padding: 10px 20px;
+    padding: 9px 16px;
+    margin: 1px 10px;
     color: var(--muted);
     cursor: pointer;
-    border-radius: 0;
+    border-radius: var(--radius-sm);
     transition: all 0.15s;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     text-decoration: none;
-    border-left: 3px solid transparent;
+    border-left: none;
   }
-  nav a:hover { color: var(--text); background: var(--surface2); }
-  nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(79,142,247,0.06); }
-  nav .icon { font-size: 16px; width: 20px; text-align: center; }
+  nav a:hover { color: var(--text2); background: var(--surface2); }
+  nav a.active {
+    color: var(--accent-hover);
+    background: rgba(99,102,241,0.12);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(99,102,241,0.2);
+  }
+  nav .icon { font-size: 15px; width: 20px; text-align: center; opacity: 0.8; }
+  nav a.active .icon { opacity: 1; }
   .sidebar-footer {
     margin-top: auto;
     padding: 16px 20px 0;
@@ -77,8 +97,8 @@
     color: var(--muted);
     display: flex; align-items: center; gap: 6px;
   }
-  .db-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .db-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; box-shadow: 0 0 6px var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
   /* ---- VIEWS ---- */
   .view { display: none; }
   .view.active { display: block; }
@@ -87,19 +107,20 @@
   .fat-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 720px; }
   .fat-table th {
     background: var(--surface2); color: var(--muted);
-    font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
-    padding: 10px 14px; text-align: right; border-bottom: 2px solid var(--border);
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 11px 14px; text-align: right; border-bottom: 1px solid var(--border2);
   }
   .fat-table th:first-child { text-align: left; }
-  .fat-table td { padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
-  .fat-table td:first-child { text-align: left; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 13px; color: var(--text); }
+  .fat-table td { padding: 11px 14px; text-align: right; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text2); }
+  .fat-table td:first-child { text-align: left; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; color: var(--text); }
+  .fat-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.012); }
   .fat-table tbody tr:hover { background: var(--surface2); }
-  .fat-table tbody tr.cur-month td:first-child { color: var(--accent); }
-  .fat-table tfoot td { font-weight: 700; font-family: 'Syne', sans-serif; font-size: 13px; border-top: 2px solid var(--border); background: var(--surface2); padding: 12px 14px; }
+  .fat-table tbody tr.cur-month td:first-child { color: var(--accent-hover); font-weight: 700; }
+  .fat-table tfoot td { font-weight: 700; font-family: 'Inter', sans-serif; font-size: 13px; border-top: 2px solid var(--border2); background: var(--surface2); padding: 12px 14px; }
   .fat-table tfoot td:first-child { text-align: left; }
   .fat-table .zero { color: var(--muted); }
-  .fat-table .pos { color: var(--green); }
-  .fat-table .neg { color: var(--red); }
+  .fat-table .pos { color: var(--green-light); }
+  .fat-table .neg { color: var(--red-light); }
   .fat-cfg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
   @media(max-width:700px) { .fat-cfg { grid-template-columns: 1fr 1fr; } }
   /* ---- PAGE HEADER ---- */
@@ -107,8 +128,8 @@
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 28px;
   }
-  .page-header h2 { font-size: 24px; font-weight: 800; }
-  .page-header .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .page-header h2 { font-size: 34px; font-weight: 800; letter-spacing: -1px; }
+  .page-header .sub { color: var(--muted); font-size: 13px; margin-top: 4px; font-weight: 400; }
   /* Cabeçalho fixo ao rolar em todas as páginas */
   .view > .page-header {
     position: sticky;
@@ -119,78 +140,100 @@
     margin-top: -20px;
   }
   /* ---- CARDS ---- */
-  .cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px; }
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
-  .card .label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-  .card .value { font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-  .card .sub-val { font-size: 11px; color: var(--muted); margin-top: 3px; }
-  .card.accent { border-color: rgba(79,142,247,0.3); background: rgba(79,142,247,0.05); }
-  .card.accent .value { color: var(--accent); }
-  .card.green { border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.05); }
-  .card.green .value { color: var(--green); }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--border2);
+    transition: background 0.2s;
+  }
+  .card:hover { border-color: var(--border2); box-shadow: var(--shadow-md); }
+  .card .label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; }
+  .card .value { font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: -0.5px; }
+  .card .sub-val { font-size: 11px; color: var(--muted); margin-top: 5px; }
+  .card.accent { border-color: rgba(99,102,241,0.25); background: rgba(99,102,241,0.04); }
+  .card.accent::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .card.accent .value { color: var(--accent-hover); }
+  .card.green { border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.04); }
+  .card.green::before { background: linear-gradient(90deg, var(--green), var(--green-light)); }
+  .card.green .value { color: var(--green-light); }
   /* ---- TABLE ---- */
-  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
   table { width: 100%; border-collapse: collapse; }
   thead th {
     background: var(--surface2);
-    padding: 12px 16px;
+    padding: 11px 16px;
     text-align: left;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
+    letter-spacing: 1px;
     color: var(--muted);
     border-bottom: 1px solid var(--border);
   }
   tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:nth-child(even) { background: rgba(255,255,255,0.012); }
   tbody tr:last-child { border-bottom: none; }
   tbody tr:hover { background: var(--surface2); }
-  tbody td { padding: 11px 16px; font-size: 13px; }
+  tbody td { padding: 11px 16px; font-size: 13px; color: var(--text2); }
+  tbody td:first-child { color: var(--text); font-weight: 500; }
   .mono { font-family: 'JetBrains Mono', monospace; }
   .badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 10px;
     font-weight: 600;
+    letter-spacing: 0.3px;
   }
-  .badge-blue { background: rgba(79,142,247,0.15); color: var(--accent); }
-  .badge-green { background: rgba(52,211,153,0.15); color: var(--green); }
-  .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
-  .badge-red { background: rgba(248,113,113,0.15); color: var(--red); }
-  .badge-gray { background: rgba(107,117,146,0.2); color: var(--muted); }
+  .badge-blue { background: rgba(99,102,241,0.15); color: var(--accent-hover); border: 1px solid rgba(99,102,241,0.25); }
+  .badge-green { background: rgba(16,185,129,0.12); color: var(--green-light); border: 1px solid rgba(16,185,129,0.25); }
+  .badge-yellow { background: rgba(245,158,11,0.12); color: var(--yellow); border: 1px solid rgba(245,158,11,0.25); }
+  .badge-red { background: rgba(239,68,68,0.12); color: var(--red-light); border: 1px solid rgba(239,68,68,0.25); }
+  .badge-gray { background: rgba(90,99,128,0.15); color: var(--muted); border: 1px solid rgba(90,99,128,0.2); }
+  thead th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  thead th.sortable:hover { color: var(--text2); background: var(--surface3); }
+  thead th.sort-asc::after  { content: ' ↑'; color: var(--accent-hover); }
+  thead th.sort-desc::after { content: ' ↓'; color: var(--accent-hover); }
   /* ---- FORM ---- */
   .form-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
   .form-grid.cols2 { grid-template-columns: repeat(2,1fr); }
   .form-grid.cols3 { grid-template-columns: repeat(3,1fr); }
   .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+  .form-group label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
   .form-group input, .form-group select, .form-group textarea {
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
     color: var(--text);
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
     outline: none;
   }
   .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
   }
   .form-group select option { background: var(--surface2); }
-  .form-group textarea { resize: vertical; min-height: 120px; font-family: 'Syne', sans-serif; }
+  .form-group textarea { resize: vertical; min-height: 120px; font-family: 'Inter', sans-serif; }
   /* ---- BUTTONS ---- */
   .btn {
     padding: 10px 20px;
     border-radius: 8px;
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 700;
     cursor: pointer;
@@ -198,11 +241,11 @@
     transition: all 0.15s;
   }
   .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: #3a78e8; }
+  .btn-primary:hover { background: #4f46e5; }
   .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-danger { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
-  .btn-danger:hover { background: rgba(248,113,113,0.25); }
+  .btn-danger { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+  .btn-danger:hover { background: rgba(239,68,68,0.18); }
   .btn-sm { padding: 6px 12px; font-size: 12px; }
   .btn-icon { padding: 6px 10px; border-radius: 6px; }
   .actions { display: flex; gap: 8px; }
@@ -210,70 +253,74 @@
   .form-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 24px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
   }
-  .form-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .form-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; color: var(--text); letter-spacing: -0.1px; }
   .form-footer { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
   /* ---- MONTH SELECTOR ---- */
   .month-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
   .month-bar > div { flex-basis: 100%; height: 0; }
   .month-btn {
-    padding: 6px 14px;
-    border-radius: 6px;
+    padding: 5px 13px;
+    border-radius: 20px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--surface);
+    border: 1px solid var(--border2);
+    background: var(--surface2);
     color: var(--muted);
     transition: all 0.15s;
   }
-  .month-btn:hover { border-color: var(--accent); color: var(--text); }
-  .month-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .month-btn:hover { border-color: var(--accent); color: var(--text2); }
+  .month-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 8px var(--accent-glow); font-weight: 600; }
   /* ---- WEEK OVERVIEW ---- */
   .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 6px; margin-bottom: 20px; }
   .day-cell {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 8px 5px;
     text-align: center;
     cursor: pointer;
     transition: all 0.15s;
   }
-  .day-cell:hover { border-color: var(--accent); }
-  .day-cell.today { border-color: var(--accent); background: rgba(79,142,247,0.07); }
-  .day-cell.has-hours { border-color: rgba(52,211,153,0.4); }
-  .day-cell.weekend { opacity: 0.5; }
-  .day-cell .d-num { font-size: 14px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-  .day-cell .d-name { font-size: 9px; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
-  .day-cell .d-hours { font-size: 10px; color: var(--green); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+  .day-cell:hover { border-color: var(--border2); background: var(--surface2); }
+  .day-cell.today { border-color: var(--accent); background: rgba(99,102,241,0.07); box-shadow: 0 0 0 1px rgba(99,102,241,0.15); }
+  .day-cell.has-hours { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.04); }
+  .day-cell.weekend { opacity: 0.45; }
+  .day-cell .d-num { font-size: 14px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .day-cell .d-name { font-size: 9px; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
+  .day-cell .d-hours { font-size: 10px; color: var(--green-light); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
   /* ---- SUMMARY MONTH ---- */
   .month-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
   /* ---- TOAST ---- */
   #toast {
     position: fixed; bottom: 24px; right: 24px;
     background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 20px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 13px 20px;
     font-size: 13px;
     font-weight: 600;
     transform: translateY(80px);
     opacity: 0;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     z-index: 9999;
-    display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(8px);
   }
   #toast.show { transform: translateY(0); opacity: 1; }
-  #toast.success { border-color: rgba(52,211,153,0.5); color: var(--green); }
-  #toast.error { border-color: rgba(248,113,113,0.5); color: var(--red); }
+  #toast.success { border-color: rgba(16,185,129,0.4); color: var(--green-light); background: rgba(16,185,129,0.08); }
+  #toast.error { border-color: rgba(239,68,68,0.4); color: var(--red-light); background: rgba(239,68,68,0.08); }
   /* ---- MODAL ---- */
   .modal-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(4px);
     display: flex; align-items: center; justify-content: center;
     z-index: 1000;
     opacity: 0; pointer-events: none;
@@ -282,21 +329,22 @@
   .modal-overlay.open { opacity: 1; pointer-events: all; }
   .modal {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
     padding: 28px;
     width: 500px;
     max-width: 95vw;
-    transform: scale(0.95);
-    transition: transform 0.2s;
+    transform: scale(0.96) translateY(8px);
+    transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+    box-shadow: var(--shadow-lg);
   }
-  .modal-overlay.open .modal { transform: scale(1); }
-  .modal h3 { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
-  .modal-footer { margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+  .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; letter-spacing: -0.2px; }
+  .modal-footer { margin-top: 24px; display: flex; gap: 8px; justify-content: flex-end; }
   /* ---- EMPTY STATE ---- */
   .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-  .empty .icon { font-size: 40px; margin-bottom: 12px; }
-  .empty p { font-size: 14px; }
+  .empty .icon { font-size: 36px; margin-bottom: 14px; opacity: 0.5; }
+  .empty p { font-size: 13px; line-height: 1.6; }
   /* ---- EXPORT SECTION ---- */
   .export-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
   .export-card {
@@ -308,31 +356,32 @@
     transition: all 0.15s;
     text-align: center;
   }
-  .export-card:hover { border-color: var(--accent); background: rgba(79,142,247,0.04); }
+  .export-card:hover { border-color: var(--accent); background: rgba(99,102,241,0.05); }
   .export-card .eicon { font-size: 32px; margin-bottom: 10px; }
   .export-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
   .export-card p { font-size: 12px; color: var(--muted); }
   /* ---- CONFIG ---- */
   .config-section { margin-bottom: 28px; }
-  .config-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .config-section h3 { font-size: 13px; font-weight: 700; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
   .tag-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .tag {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 4px 10px;
-    border-radius: 6px;
+    border-radius: 20px;
     background: var(--surface2);
-    border: 1px solid var(--border);
-    font-size: 12px;
-    font-weight: 600;
+    border: 1px solid var(--border2);
+    font-size: 11px;
+    font-weight: 500;
   }
-  .tag .remove { cursor: pointer; color: var(--red); font-size: 14px; line-height: 1; }
+  .tag .remove { cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1; transition: color 0.1s; }
+  .tag .remove:hover { color: var(--red-light); }
   .btn-icon-sm { padding: 4px 7px; border-radius: 6px; font-size: 12px; line-height: 1; }
   /* ---- VIEW ONLY ---- */
   .view-field { display: flex; flex-direction: column; gap: 4px; }
   .view-field .vf-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
-  .view-field .vf-value { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 13px; color: var(--text); font-family: 'JetBrains Mono', monospace; }
-  .view-field .vf-value.syne { font-family: 'Syne', sans-serif; }
-  .view-field .vf-value.desc { font-family: 'Syne', sans-serif; white-space: pre-wrap; word-break: break-word; line-height: 1.6; min-height: 80px; max-height: 220px; overflow-y: auto; }
+  .view-field .vf-value { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; color: var(--text2); font-family: 'JetBrains Mono', monospace; }
+  .view-field .vf-value.syne { font-family: 'Inter', sans-serif; }
+  .view-field .vf-value.desc { font-family: 'Inter', sans-serif; white-space: pre-wrap; word-break: break-word; line-height: 1.6; min-height: 80px; max-height: 220px; overflow-y: auto; }
   .view-grid { display: grid; gap: 12px; margin-bottom: 16px; }
   .view-grid.cols3 { grid-template-columns: repeat(3,1fr); }
   .view-grid.cols2 { grid-template-columns: repeat(2,1fr); }
@@ -341,17 +390,18 @@
   /* ---- RELATORIO CHART ---- */
   .rel-bar-wrap { display:flex; align-items:flex-end; gap:6px; height:180px; padding-top:24px; min-width:600px; }
   .rel-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:32px; }
-  .rel-bar { width:100%; max-width:48px; border-radius:4px 4px 0 0; background:var(--accent); transition:background .15s; position:relative; min-height:2px; }
-  .rel-bar-col:hover .rel-bar { background:var(--accent2); }
+  .rel-bar { width:100%; max-width:48px; border-radius:4px 4px 0 0; background:var(--accent); transition:background .15s; position:relative; min-height:2px; opacity: 0.85; }
+  .rel-bar-col:hover .rel-bar { background:var(--accent-hover); opacity: 1; }
   .rel-bar-val { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); margin-bottom:4px; white-space:nowrap; }
   .rel-bar-label { font-size:10px; color:var(--muted); margin-top:6px; font-weight:600; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60px; }
   .rel-bar-col.highlight .rel-bar { background:var(--green); }
   .rel-bar-col.highlight .rel-bar-label { color:var(--green); }
 
   /* ---- SCROLLBAR ---- */
-  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
   /* ---- HOURS CHART ---- */
   .hours-chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding-top: 20px; }
   .hours-chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: default; }
@@ -363,9 +413,10 @@
     transition: background 0.15s;
     position: relative;
     min-height: 2px;
+    opacity: 0.8;
   }
-  .hours-chart-col:hover .hours-chart-bar { background: var(--accent2); }
-  .hours-chart-col.current .hours-chart-bar { background: var(--green); }
+  .hours-chart-col:hover .hours-chart-bar { background: var(--accent-hover); opacity: 1; }
+  .hours-chart-col.current .hours-chart-bar { background: var(--green); opacity: 1; }
   .hours-chart-val {
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
@@ -400,9 +451,10 @@
   .login-card {
     width: 100%; max-width: 380px;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 32px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    box-shadow: var(--shadow-lg), 0 0 60px rgba(99,102,241,0.06);
   }
   .login-card .logo { padding: 0 0 24px; border: none; margin-bottom: 24px; text-align: center; }
   .login-card .logo h1 { font-size: 26px; }
@@ -411,20 +463,20 @@
     flex: 1; text-align: center; padding: 8px; border-radius: 6px; cursor: pointer;
     font-size: 12px; font-weight: 700; color: var(--muted); transition: all .15s;
   }
-  .login-tab.active { background: var(--accent); color: #fff; }
+  .login-tab.active { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(99,102,241,0.35); }
   .login-card .form-group { margin-bottom: 14px; }
   .login-card .btn { width: 100%; margin-top: 6px; }
   #login-error {
-    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(239,68,68,0.25);
     color: var(--red); border-radius: 8px; padding: 10px 12px; font-size: 12px;
     margin-bottom: 14px; display: none;
   }
   #login-error.show { display: block; }
   .login-loading { text-align: center; color: var(--muted); font-size: 13px; padding: 20px 0; }
   /* ---- SYNC STATUS ---- */
-  .db-status.syncing .db-dot { background: var(--yellow); }
-  .db-status.offline .db-dot { background: var(--red); animation: none; }
-  .db-status.synced .db-dot { background: var(--green); }
+  .db-status.syncing .db-dot { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+  .db-status.offline .db-dot { background: var(--red); box-shadow: 0 0 6px var(--red); animation: none; }
+  .db-status.synced .db-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
   .sidebar-footer .user-email {
     font-size: 11px; color: var(--muted); margin-bottom: 8px;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -432,22 +484,23 @@
   }
   .btn-logout {
     width: 100%; background: transparent; border: 1px solid var(--border);
-    color: var(--muted); padding: 7px; border-radius: 6px; font-size: 11px;
-    font-weight: 600; cursor: pointer; margin-top: 8px; transition: all .15s;
+    color: var(--muted); padding: 7px; border-radius: var(--radius-sm); font-size: 11px;
+    font-weight: 500; cursor: pointer; margin-top: 10px; transition: all .15s;
+    font-family: 'Inter', sans-serif;
   }
-  .btn-logout:hover { color: var(--red); border-color: rgba(248,113,113,0.4); }
+  .btn-logout:hover { color: var(--red-light); border-color: rgba(239,68,68,0.35); background: rgba(239,68,68,0.05); }
   /* ---- AUTOCOMPLETE CUSTOMIZADO ---- */
   .ac-dropdown {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
     min-width: 280px;
-    background: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
     overflow: hidden;
     z-index: 9999;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+    box-shadow: var(--shadow-lg);
     max-height: 240px;
     overflow-y: auto;
   }
@@ -461,18 +514,18 @@
     border-bottom: 1px solid var(--border);
   }
   .ac-item:last-child { border-bottom: none; }
-  .ac-item:hover, .ac-item.ac-active { background: rgba(79,142,247,0.12); }
+  .ac-item:hover, .ac-item.ac-active { background: rgba(99,102,241,0.12); }
   .ac-cod {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--accent-hover);
     white-space: nowrap;
     min-width: 72px;
   }
   .ac-nome {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text);
     white-space: nowrap;
   }
@@ -480,7 +533,7 @@
   .cli-tag-box {
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     padding: 8px 10px;
     display: flex;
     flex-wrap: wrap;
@@ -488,20 +541,20 @@
     align-items: center;
     min-height: 44px;
     cursor: text;
-    transition: border-color 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
     position: relative;
   }
-  .cli-tag-box:focus-within { border-color: var(--accent); }
+  .cli-tag-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
   .cli-tag {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    background: rgba(79,142,247,0.15);
-    color: var(--accent);
-    border: 1px solid rgba(79,142,247,0.3);
-    border-radius: 5px;
-    padding: 3px 8px;
-    font-size: 12px;
+    background: rgba(99,102,241,0.12);
+    color: var(--accent-hover);
+    border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
   }
@@ -524,7 +577,7 @@
     outline: none;
     background: transparent;
     color: var(--text);
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
     min-width: 140px;
     flex: 1;
@@ -554,7 +607,7 @@
     transition: background 0.1s;
   }
   .cli-tag-opt:last-child { border-bottom: none; }
-  .cli-tag-opt:hover, .cli-tag-opt.active { background: rgba(79,142,247,0.12); }
+  .cli-tag-opt:hover, .cli-tag-opt.active { background: rgba(99,102,241,0.12); }
   .cli-tag-opt-cod {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
@@ -753,13 +806,13 @@
               oninput="acBuscaCliente(this.value);renderRegistros()"
               onfocus="acBuscaCliente(this.value)"
               onblur="setTimeout(()=>fecharAc('ac-busca-cliente'),150)"
-              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;width:200px">
+              style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;width:200px">
             <div id="ac-busca-cliente" class="ac-dropdown" style="display:none"></div>
           </div>
-          <select id="filtro-ano" onchange="renderRegistros()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;">
+          <select id="filtro-ano" onchange="renderRegistros()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;">
             <option value="">Todos os anos</option>
           </select>
-          <select id="filtro-mes" onchange="renderRegistros()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;">
+          <select id="filtro-mes" onchange="renderRegistros()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;">
             <option value="">Todos os meses</option>
           </select>
           <button class="btn btn-primary" onclick="abrirModalApontamento()">+ Novo Apontamento</button>
@@ -770,7 +823,7 @@
         <table>
           <thead>
             <tr>
-              <th>Data</th><th>Dia</th><th>P1 Início</th><th>P1 Fim</th><th>P2 Início</th><th>P2 Fim</th><th>Translado</th><th>Total</th><th>Extra</th><th>Aliment.</th><th>Transp.</th><th>Clientes</th><th>Obs</th><th>Ações</th>
+              <th>OS</th><th>Data</th><th>Dia</th><th>P1 Início</th><th>P1 Fim</th><th>P2 Início</th><th>P2 Fim</th><th>Translado</th><th>Total</th><th>Extra</th><th>Aliment.</th><th>Transp.</th><th>Clientes</th><th>Obs</th><th>Ações</th>
             </tr>
           </thead>
           <tbody id="tbody-registros"></tbody>
@@ -934,24 +987,34 @@
     <div class="view" id="view-relatorios">
       <div class="page-header">
         <div><h2>Relatórios</h2><div class="sub" id="rel-subtitle">Análise detalhada dos seus dados</div></div>
-        <div class="flex" style="gap:8px;flex-wrap:wrap">
-          <select id="rel-tipo" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;">
+        <div class="flex" style="gap:8px;flex-wrap:wrap;display:none">
+          <select id="rel-tipo" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;">
             <option value="mensal">Por Mês</option>
             <option value="cliente">Por Cliente</option>
             <option value="diario">Diário Detalhado</option>
           </select>
-          <select id="rel-ano" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;"></select>
-          <select id="rel-mes-filtro" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;">
+          <select id="rel-ano" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;"></select>
+          <select id="rel-mes-filtro" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;">
             <option value="">Todos os meses</option>
           </select>
-          <select id="rel-cliente-filtro" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Syne',sans-serif;font-size:13px;outline:none;min-width:160px">
+          <select id="rel-cliente-filtro" onchange="renderRelatorios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;min-width:160px">
             <option value="">Todos os clientes</option>
           </select>
         </div>
       </div>
 
-      <!-- Tabela de dados -->
-      <div class="form-card">
+      <!-- Resumo Mensal em cards (oculto) -->
+      <div class="form-card" id="rel-cards-wrap" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h3 style="margin-bottom:0">📋 Resumo Mensal</h3>
+          <button class="btn btn-secondary btn-sm" onclick="exportarRelatorioCSV()">⬇ Exportar CSV</button>
+        </div>
+        <div id="rel-cards-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
+        <div id="rel-cards-empty" style="display:none;text-align:center;color:var(--muted);padding:40px;font-size:13px">Nenhum dado no período</div>
+      </div>
+
+      <!-- Tabela de dados (cliente / diário) -->
+      <div class="form-card" id="rel-table-wrap">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <h3 id="rel-table-title" style="margin-bottom:0">📋 Detalhe</h3>
           <button class="btn btn-secondary btn-sm" onclick="exportarRelatorioCSV()">⬇ Exportar CSV</button>
@@ -1224,6 +1287,7 @@
   <div class="modal" style="width:720px;max-width:96vw">
     <h3 id="f-modal-titulo">✦ Novo Apontamento</h3>
     <input type="hidden" id="f-edit-id">
+    <input type="hidden" id="f-cliente-id">
     <!-- Linha 1: Data + Código + Cliente -->
     <div style="display:grid;grid-template-columns:150px 130px 1fr;gap:12px;margin-bottom:16px">
       <div class="form-group">
@@ -1233,7 +1297,7 @@
       <div class="form-group" style="position:relative">
         <label>Código</label>
         <input type="text" id="f-codigo" placeholder="ex: CLI-001" autocomplete="off"
-          oninput="acCodigo(this.value)" onfocus="acCodigo(this.value)" onblur="setTimeout(()=>fecharAc('ac-codigo'),150)">
+          oninput="document.getElementById('f-cliente-id').value=''; acCodigo(this.value)" onfocus="acCodigo(this.value)" onblur="setTimeout(()=>fecharAc('ac-codigo'),150)">
         <div id="ac-codigo" class="ac-dropdown" style="display:none"></div>
       </div>
       <div class="form-group" style="position:relative">
@@ -1299,6 +1363,7 @@
   <div class="modal" style="width:720px;max-width:96vw">
     <h3>✦ Alterar Apontamento</h3>
     <input type="hidden" id="edit-id">
+    <input type="hidden" id="edit-cliente-id">
     <!-- Linha 1: Data + Código + Cliente -->
     <div style="display:grid;grid-template-columns:150px 130px 1fr;gap:12px;margin-bottom:16px">
       <div class="form-group">
@@ -1308,7 +1373,7 @@
       <div class="form-group" style="position:relative">
         <label>Código</label>
         <input type="text" id="edit-codigo" placeholder="ex: CLI-001" autocomplete="off"
-          oninput="acCodigoEdit(this.value)" onfocus="acCodigoEdit(this.value)" onblur="setTimeout(()=>fecharAc('ac-edit-codigo'),150)">
+          oninput="document.getElementById('edit-cliente-id').value=''; acCodigoEdit(this.value)" onfocus="acCodigoEdit(this.value)" onblur="setTimeout(()=>fecharAc('ac-edit-codigo'),150)">
         <div id="ac-edit-codigo" class="ac-dropdown" style="display:none"></div>
       </div>
       <div class="form-group">
@@ -1404,7 +1469,7 @@ let db = {
   registros: [],
   clientes: ['Mazzaferro', 'Fernandes', 'Fiação'],
   consultorias: [],
-  config: { nome: '', empresa: '', horasDiarias: 8, valorHora: 0 }
+  config: { nome: '', empresa: '', horasDiarias: 8, valorHora: 0, proximaOS: 1 }
 };
 
 function carregarDB() {
@@ -1413,7 +1478,11 @@ function carregarDB() {
     if (raw) db = JSON.parse(raw);
   } catch(e) {}
   if (!Array.isArray(db.consultorias)) db.consultorias = [];
+  if (!db.config.proximaOS) db.config.proximaOS = 1;
   migrarClientes();
+  migrarConsultoriaId();
+  migrarClienteId();
+  migrarNumerosOS();
 }
 
 // Converte o formato antigo (array de strings) para o novo cadastro completo
@@ -1429,6 +1498,75 @@ function migrarClientes() {
     return c;
   });
   if (mudou) salvarDB();
+}
+
+// Preenche cliente.consultoriaId nos cadastros de cliente existentes que
+// ainda não o possuem (dados salvos antes da migração para vínculo por ID).
+// Para cada cliente sem consultoriaId, tenta achar a consultoria
+// correspondente por cliente.consultoriaCodigo. Não remove nem altera
+// consultoriaCodigo, que continua existindo para compatibilidade.
+function migrarConsultoriaId() {
+  if (!Array.isArray(db.clientes)) return;
+  let mudou = false;
+  db.clientes.forEach(c => {
+    if (c.consultoriaId) return; // já migrado
+    if (!c.consultoriaCodigo) return;
+    const con = (db.consultorias || []).find(x => (x.codigo || x.id) === c.consultoriaCodigo);
+    if (con) {
+      c.consultoriaId = con.id;
+      mudou = true;
+    }
+  });
+  if (mudou) salvarDB();
+}
+
+// Preenche r.clienteId nos registros de apontamento existentes que ainda não
+// o possuem (dados salvos antes da migração para vínculo por ID). Para cada
+// registro sem clienteId, tenta achar o cliente correspondente por r.codigo
+// e, faltando isso, por r.clientes (nome). É só um "preenchimento" — não
+// remove nem altera r.codigo/r.clientes, que continuam existindo para exibição
+// e para compatibilidade com qualquer parte do app que ainda os utilize.
+// Roda sempre que o banco é carregado, então registros novos sem cliente
+// correspondente (cliente ainda não cadastrado) são revisitados a cada load
+// e migrados automaticamente assim que o cliente for cadastrado.
+function migrarClienteId() {
+  if (!Array.isArray(db.registros)) return;
+  let mudou = false;
+  db.registros.forEach(r => {
+    if (r.clienteId) return; // já migrado
+    let cli = null;
+    if (r.codigo) {
+      cli = db.clientes.find(c => (c.codigo || '').toLowerCase() === r.codigo.toLowerCase());
+    }
+    if (!cli && r.clientes) {
+      cli = db.clientes.find(c => c.nome.toLowerCase() === r.clientes.toLowerCase());
+    }
+    if (cli) {
+      r.clienteId = cli.id;
+      mudou = true;
+    }
+  });
+  if (mudou) salvarDB();
+}
+
+// Atribui número de OS sequencial (r.os) a registros antigos que não possuem.
+// A numeração segue a ordem cronológica dos registros existentes.
+function migrarNumerosOS() {
+  if (!Array.isArray(db.registros)) return;
+  if (!db.config.proximaOS) db.config.proximaOS = 1;
+  // Registros já com OS: garante que proximaOS seja maior que qualquer OS existente
+  db.registros.forEach(r => {
+    if (r.os && r.os >= db.config.proximaOS) db.config.proximaOS = r.os + 1;
+  });
+  // Atribui OS aos registros sem número, em ordem de data
+  const semOS = [...db.registros]
+    .filter(r => !r.os)
+    .sort((a, b) => a.data.localeCompare(b.data) || a.id - b.id);
+  if (!semOS.length) return;
+  semOS.forEach(r => {
+    r.os = db.config.proximaOS++;
+  });
+  salvarDB();
 }
 
 function gerarIdCliente() {
@@ -1503,9 +1641,17 @@ function iniciarSyncFirestore(user) {
       registros: remoto.registros ?? db.registros ?? [],
       clientes: remoto.clientes ?? db.clientes ?? [],
       consultorias: remoto.consultorias ?? db.consultorias ?? [],
-      config: remoto.config ?? db.config ?? { nome: '', empresa: '', horasDiarias: 8, valorHora: 0 }
+      config: remoto.config ?? db.config ?? { nome: '', empresa: '', horasDiarias: 8, valorHora: 0, proximaOS: 1 }
     };
+    if (!db.config.proximaOS) db.config.proximaOS = 1;
+    // Migrações rodam aqui só localmente: como _fbApplyingRemote está true,
+    // salvarDB() (chamado internamente por elas) não reenvia ao Firestore —
+    // evita loop de re-escrita. O documento remoto só ganha clienteId/
+    // consultoriaId quando o usuário fizer qualquer edição normal depois.
     migrarClientes();
+    migrarConsultoriaId();
+    migrarClienteId();
+    migrarNumerosOS();
     localStorage.setItem(DB_KEY, JSON.stringify(db));
     renderAll();
     atualizarDatalist();
@@ -1863,6 +2009,7 @@ function acCodigo(val) {
   renderAcItems('ac-codigo', lista, cli => {
     document.getElementById('f-codigo').value = cli.codigo || '';
     document.getElementById('f-clientes').value = cli.nome;
+    document.getElementById('f-cliente-id').value = cli.id || '';
     fecharAc('ac-codigo');
   });
 }
@@ -1875,6 +2022,7 @@ function acCliente(val) {
   renderAcItems('ac-clientes', lista, cli => {
     document.getElementById('f-clientes').value = cli.nome;
     document.getElementById('f-codigo').value = cli.codigo || '';
+    document.getElementById('f-cliente-id').value = cli.id || '';
     fecharAc('ac-clientes');
   });
 }
@@ -1928,6 +2076,7 @@ document.addEventListener('keydown', function(e) {
 function limparForm() {
   document.getElementById('f-codigo').value = '';
   document.getElementById('f-clientes').value = '';
+  document.getElementById('f-cliente-id').value = '';
   document.getElementById('f-obs').value = '';
   document.getElementById('f-desc').value = '';
   document.getElementById('f-p1-inicio').value = '09:00';
@@ -1973,6 +2122,7 @@ async function salvarApontamento() {
 
   const reg = {
     id: editId || Date.now(),
+    os: null, // será atribuído abaixo para novos registros
     data: data,
     p1i: p1i,
     p1f: p1f,
@@ -1983,32 +2133,43 @@ async function salvarApontamento() {
     transp: parseFloat(document.getElementById('f-transporte').value) || 0,
     codigo: document.getElementById('f-codigo').value.trim(),
     clientes: document.getElementById('f-clientes').value.trim(),
+    clienteId: document.getElementById('f-cliente-id').value || null,
     obs: document.getElementById('f-obs').value.trim(),
     desc: document.getElementById('f-desc').value.trim()
   };
 
-  // Duplicata: mesmo dia + mesmo código de cliente (ignora o próprio registro
-  // em edição, senão ele sempre "colidiria" consigo mesmo quando a data não muda)
+  // Duplicata: mesmo dia + mesmo cliente. Prioriza comparar por clienteId
+  // (robusto a renomeações); cai para código quando algum dos dois registros
+  // ainda não tem clienteId (dados antigos / cliente sem cadastro).
   const codigoReg = reg.codigo.toLowerCase();
   const idx = db.registros.findIndex(r =>
     r.id !== reg.id &&
     r.data === data &&
+    reg.clienteId &&
+    (r.clienteId === reg.clienteId ||
+      (!r.clienteId && (r.codigo || '').toLowerCase() === codigoReg && codigoReg !== ''))
+  );
+  // Fallback sem clienteId: mesmo dia + mesmo código de cliente
+  const idxCodigo = !reg.clienteId ? db.registros.findIndex(r =>
+    r.id !== reg.id &&
+    r.data === data &&
     (r.codigo || '').toLowerCase() === codigoReg &&
     codigoReg !== ''
-  );
+  ) : -1;
   // Fallback sem código: mesmo dia + mesmo nome de cliente
-  const idxNome = codigoReg === '' ? db.registros.findIndex(r =>
+  const idxNome = (!reg.clienteId && codigoReg === '') ? db.registros.findIndex(r =>
     r.id !== reg.id &&
     r.data === data &&
     (r.clientes || '').toLowerCase() === reg.clientes.toLowerCase() &&
     reg.clientes !== ''
   ) : -1;
 
-  const idxDup = idx >= 0 ? idx : idxNome;
+  const idxDup = idx >= 0 ? idx : (idxCodigo >= 0 ? idxCodigo : idxNome);
   if (idxDup >= 0) {
     const ok = await confirmDialog('Já existe um apontamento para este cliente nesta data. Deseja substituir?', 'Substituir registro', 'Substituir');
     if (!ok) return;
     reg.id = db.registros[idxDup].id;
+    reg.os = db.registros[idxDup].os; // preserva o número de OS original
     db.registros[idxDup] = reg;
     // Se estávamos movendo outro registro (edit-id) para esta data e ela já
     // tinha um lançamento diferente, o registro original precisa ser removido
@@ -2020,12 +2181,15 @@ async function salvarApontamento() {
   } else if (editId !== null) {
     const oldIdx = db.registros.findIndex(r => r.id === editId);
     if (oldIdx >= 0) {
+      reg.os = db.registros[oldIdx].os; // preserva o número de OS original
       db.registros[oldIdx] = reg;
     } else {
       // segurança: registro original não encontrado, evita perder os dados
+      if (!reg.os) reg.os = db.config.proximaOS++;
       db.registros.push(reg);
     }
   } else {
+    reg.os = db.config.proximaOS++;
     db.registros.push(reg);
   }
 
@@ -2044,6 +2208,8 @@ async function salvarApontamento() {
 // ============================================================
 let selectedMonth = new Date().getMonth();
 let selectedYear = new Date().getFullYear();
+let regSortCol = 'data';   // 'os' | 'data' | 'clientes'
+let regSortDir = 'asc';    // 'asc' | 'desc'
 
 function renderDashboard() {
 
@@ -2137,7 +2303,17 @@ function renderMonthView(mes) {
   const metaMin = (db.config.horasDiarias || 8) * 60;
   const saldoExtra = regs.reduce((a,r) => a + (calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl) > 0 ? calcExtra(r) : 0), 0);
 
+  // Totais do ano inteiro (para o card de resumo anual)
+  const regsAno = db.registros.filter(r => r.data.slice(0,4) === String(ano));
+  const totalMinAnoCard = regsAno.reduce((a,r) => a + calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl), 0);
+  const diasTrabAnoCard = regsAno.filter(r => calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl) > 0).length;
+
   document.getElementById('month-summary').innerHTML = `
+    <div class="card green">
+      <div class="label">Total ${ano}</div>
+      <div class="value">${minToTime(totalMinAnoCard)}</div>
+      <div class="sub-val">${diasTrabAnoCard} dias / ${(totalMinAnoCard/60).toFixed(1)}h no ano</div>
+    </div>
     <div class="card accent">
       <div class="label">Horas — ${getMesNomeFull(mes)}</div>
       <div class="value">${minToTime(totalMin)}</div>
@@ -2202,6 +2378,16 @@ function renderMonthView(mes) {
   tw.innerHTML = `<table><thead><tr><th>Data</th><th>Dia</th><th>Período 1</th><th>Período 2</th><th>Total</th><th>Extra</th><th>Clientes</th><th>Obs</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
+function sortRegistros(col) {
+  if (regSortCol === col) {
+    regSortDir = regSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    regSortCol = col;
+    regSortDir = 'asc';
+  }
+  renderRegistros();
+}
+
 // ============================================================
 // REGISTROS
 // ============================================================
@@ -2257,9 +2443,38 @@ function renderRegistros() {
 
   const tbody = document.getElementById('tbody-registros');
   if (regs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="14"><div class="empty"><div class="icon">📋</div><p>Nenhum registro encontrado</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15"><div class="empty"><div class="icon">📋</div><p>Nenhum registro encontrado</p></div></td></tr>';
     return;
   }
+
+  // Ordenação
+  regs = [...regs].sort((a, b) => {
+    let va, vb;
+    if (regSortCol === 'os') {
+      va = a.os || 0; vb = b.os || 0;
+      return regSortDir === 'asc' ? va - vb : vb - va;
+    } else if (regSortCol === 'clientes') {
+      va = (a.clientes || '').toLowerCase(); vb = (b.clientes || '').toLowerCase();
+      return regSortDir === 'asc' ? va.localeCompare(vb,'pt-BR') : vb.localeCompare(va,'pt-BR');
+    } else { // data (default)
+      va = a.data; vb = b.data;
+      return regSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+  });
+
+  // Cabeçalho com colunas ordenáveis
+  const thSort = (col, label) => {
+    const active = regSortCol === col;
+    const cls = ['sortable', active ? ('sort-' + regSortDir) : ''].filter(Boolean).join(' ');
+    return `<th class="${cls}" onclick="sortRegistros('${col}')">${label}</th>`;
+  };
+
+  document.querySelector('#view-registros thead tr').innerHTML =
+    thSort('os','OS') +
+    thSort('data','Data') +
+    `<th>Dia</th><th>P1 Início</th><th>P1 Fim</th><th>P2 Início</th><th>P2 Fim</th><th>Translado</th><th>Total</th><th>Extra</th><th>Aliment.</th><th>Transp.</th>` +
+    thSort('clientes','Clientes') +
+    `<th>Obs</th><th>Ações</th>`;
 
   tbody.innerHTML = regs.map(r => {
     const tot = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
@@ -2269,6 +2484,7 @@ function renderRegistros() {
     const extraStyle = extra < 0 ? 'color:var(--red)' : '';
     const obsClass = r.obs && ['FERIADO','FÉRIAS','FERIAS'].some(k => r.obs.toUpperCase().includes(k)) ? 'badge-yellow' : 'badge-gray';
     return `<tr>
+      <td class="mono" style="color:var(--accent-hover);font-size:11px;font-weight:700">${r.os ? '#' + String(r.os).padStart(6,'0') : '—'}</td>
       <td>${formatDate(r.data)}</td>
       <td><span class="badge badge-gray">${getDiaSemana(r.data)}</span></td>
       <td class="mono">${r.p1i}</td><td class="mono">${r.p1f}</td>
@@ -2303,7 +2519,7 @@ function visualizarRegistro(id) {
 
   const tot   = calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl);
   const extra = calcExtra(r);
-  const cli   = (db.clientes || []).find(c => (c.codigo||'').toLowerCase() === (r.codigo||'').toLowerCase());
+  const cli   = encontrarClienteDoRegistro(r);
   const nomeCliente = cli ? cli.nome : (r.clientes || '—');
   const extraClass  = extra > 0 ? 'view-green' : (extra < 0 ? 'view-red' : '');
 
@@ -2370,6 +2586,7 @@ function copiarRegistro(id) {
   document.getElementById('f-transporte').value = r.transp || 0;
   document.getElementById('f-codigo').value = r.codigo || '';
   document.getElementById('f-clientes').value = r.clientes || '';
+  document.getElementById('f-cliente-id').value = r.clienteId || '';
   document.getElementById('f-obs').value = r.obs || '';
   document.getElementById('f-desc').value = r.desc || '';
   atualizarTotal();
@@ -2385,6 +2602,7 @@ function abrirEdicao(id) {
   document.getElementById('edit-data').value = r.data;
   document.getElementById('edit-codigo').value = r.codigo || '';
   document.getElementById('edit-clientes').value = r.clientes || '';
+  document.getElementById('edit-cliente-id').value = r.clienteId || '';
   document.getElementById('edit-obs').value = r.obs || '';
   document.getElementById('edit-desc').value = r.desc || '';
   document.getElementById('edit-p1i').value = r.p1i;
@@ -2406,6 +2624,7 @@ function acCodigoEdit(val) {
   renderAcItems('ac-edit-codigo', lista, cli => {
     document.getElementById('edit-codigo').value = cli.codigo || '';
     document.getElementById('edit-clientes').value = cli.nome;
+    document.getElementById('edit-cliente-id').value = cli.id || '';
     fecharAc('ac-edit-codigo');
   });
 }
@@ -2432,6 +2651,7 @@ function salvarEdicao() {
     transp: parseFloat(document.getElementById('edit-transp').value) || 0,
     clientes: document.getElementById('edit-clientes').value.trim(),
     codigo: document.getElementById('edit-codigo').value.trim(),
+    clienteId: document.getElementById('edit-cliente-id').value || null,
     obs: document.getElementById('edit-obs').value.trim(),
     desc: document.getElementById('edit-desc').value.trim()
   };
@@ -2467,7 +2687,7 @@ function renderClienteLista() {
   }
   const lista = [...db.clientes].sort((a,b) => (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}));
   tbody.innerHTML = lista.map(c => {
-    const con = c.consultoriaCodigo ? db.consultorias.find(x => (x.codigo || x.id) === c.consultoriaCodigo) : null;
+    const con = encontrarConsultoriaDoCliente(c);
     return `
     <tr>
       <td class="mono">${escapeHtml(c.codigo) || '<span class="text-muted">—</span>'}</td>
@@ -2495,11 +2715,14 @@ function escapeHtml(str) {
 function abrirFormCliente(id) {
   document.getElementById('cli-form-msg').textContent = '';
 
-  // Popular select de consultorias
+  // Popular select de consultorias. O value da option é o id da consultoria
+  // (vínculo robusto, não muda se o código/nome da consultoria for editado).
   const selCon = document.getElementById('cli-consultoria');
   selCon.innerHTML = '<option value="">— Nenhuma —</option>' +
     [...db.consultorias].sort((a,b) => (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}))
-      .map(c => `<option value="${escapeHtml(c.codigo || c.id)}">${escapeHtml(c.nome)}${c.codigo ? ' ('+c.codigo+')' : ''}</option>`).join('');
+      .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nome)}${c.codigo ? ' ('+c.codigo+')' : ''}</option>`).join('');
+
+  const inputCodigo = document.getElementById('cli-codigo');
 
   if (id) {
     const c = db.clientes.find(x => x.id === id);
@@ -2513,7 +2736,13 @@ function abrirFormCliente(id) {
     document.getElementById('cli-telefone').value = c.telefone || '';
     document.getElementById('cli-ativo').value = c.ativo === false ? '0' : '1';
     document.getElementById('cli-obs').value = c.obs || '';
-    document.getElementById('cli-consultoria').value = c.consultoriaCodigo || '';
+    document.getElementById('cli-consultoria').value = c.consultoriaId || '';
+    // Código é a chave de vínculo do cliente — bloqueado na edição para
+    // evitar quebrar referências (impressões antigas, integrações, etc.).
+    inputCodigo.readOnly = true;
+    inputCodigo.title = 'O código não pode ser alterado após o cadastro';
+    inputCodigo.style.opacity = '0.6';
+    inputCodigo.style.cursor = 'default';
   } else {
     document.getElementById('form-cliente-titulo').textContent = '✦ Novo Cliente';
     document.getElementById('cli-id').value = '';
@@ -2525,6 +2754,10 @@ function abrirFormCliente(id) {
     document.getElementById('cli-ativo').value = '1';
     document.getElementById('cli-obs').value = '';
     document.getElementById('cli-consultoria').value = '';
+    inputCodigo.readOnly = false;
+    inputCodigo.title = '';
+    inputCodigo.style.opacity = '';
+    inputCodigo.style.cursor = '';
   }
   document.getElementById('form-cliente-overlay').classList.add('open');
   document.getElementById('cli-nome').focus({ preventScroll: true });
@@ -2537,17 +2770,29 @@ function fecharFormCliente() {
 function salvarCliente() {
   const id = document.getElementById('cli-id').value;
   const nome = document.getElementById('cli-nome').value.trim();
-  const codigo = document.getElementById('cli-codigo').value.trim();
   const msg = document.getElementById('cli-form-msg');
   if (!nome) { msg.textContent = 'Informe o nome do cliente.'; msg.style.color = 'var(--red)'; return; }
+
+  // Código é a chave de vínculo do cliente (usada por r.codigo em registros
+  // antigos e exibida em impressões) — uma vez cadastrado, não pode ser
+  // alterado. O campo já é readOnly na tela; aqui é a segunda camada de
+  // proteção: ao editar, sempre usa o código já salvo, ignorando o que
+  // estiver no input.
+  const clienteExistente = id ? db.clientes.find(c => c.id === id) : null;
+  const codigo = clienteExistente
+    ? (clienteExistente.codigo || '')
+    : document.getElementById('cli-codigo').value.trim();
 
   const duplicado = db.clientes.find(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== id);
   if (duplicado) { msg.textContent = 'Já existe um cliente com esse nome.'; msg.style.color = 'var(--red)'; return; }
 
-  if (codigo) {
+  if (codigo && !clienteExistente) {
     const codigoDuplicado = db.clientes.find(c => (c.codigo || '').toLowerCase() === codigo.toLowerCase() && c.id !== id);
     if (codigoDuplicado) { msg.textContent = `Esse código já está em uso pelo cliente "${codigoDuplicado.nome}".`; msg.style.color = 'var(--red)'; return; }
   }
+
+  const selConsultoriaId = document.getElementById('cli-consultoria').value || null;
+  const consultoriaSel = selConsultoriaId ? db.consultorias.find(x => x.id === selConsultoriaId) : null;
 
   const dados = {
     nome,
@@ -2558,7 +2803,10 @@ function salvarCliente() {
     valorHora: null,
     ativo: document.getElementById('cli-ativo').value === '1',
     obs: document.getElementById('cli-obs').value.trim(),
-    consultoriaCodigo: document.getElementById('cli-consultoria').value || null
+    consultoriaId: selConsultoriaId,
+    // Mantido por compatibilidade com qualquer parte do app que ainda
+    // leia consultoriaCodigo; o vínculo robusto é consultoriaId.
+    consultoriaCodigo: consultoriaSel ? (consultoriaSel.codigo || consultoriaSel.id) : null
   };
 
   if (id) {
@@ -2580,6 +2828,9 @@ async function excluirCliente(id) {
   if (!c) return;
 
   const qtdRegistros = db.registros.filter(r => {
+    if (r.clienteId) return r.clienteId === c.id;
+    // Fallback para registros antigos ainda não migrados (sem clienteId):
+    // compara por nome, como antes.
     if (!r.clientes) return false;
     const nomes = r.clientes.split(/[/,;]+/).map(n => n.trim().toLowerCase()).filter(Boolean);
     return nomes.includes(c.nome.trim().toLowerCase());
@@ -2619,7 +2870,10 @@ function renderConsultoria() {
   }
   const lista = [...db.consultorias].sort((a,b) => (a.codigo||"").localeCompare(b.codigo||"", undefined, {numeric:true}));
   tbody.innerHTML = lista.map(c => {
-    const clientesVinculados = (db.clientes || []).filter(cl => cl.consultoriaCodigo === (c.codigo || c.id));
+    const clientesVinculados = (db.clientes || []).filter(cl => {
+      const con = encontrarConsultoriaDoCliente(cl);
+      return con && con.id === c.id;
+    });
     const clientesBadges = clientesVinculados.length
       ? `<div class="clientes-vinculados-badges">${clientesVinculados.map(cl => `<span class="badge badge-blue">${escapeHtml(cl.nome)}</span>`).join('')}</div>`
       : '<span class="text-muted">—</span>';
@@ -2644,6 +2898,7 @@ function renderConsultoria() {
 
 function abrirFormConsultoria(id) {
   document.getElementById('con-form-msg').textContent = '';
+  const inputConCodigo = document.getElementById('con-codigo');
   if (id) {
     const c = db.consultorias.find(x => x.id === id);
     if (!c) return;
@@ -2657,10 +2912,20 @@ function abrirFormConsultoria(id) {
     document.getElementById('con-valor-hora').value = c.valorHora || '';
     document.getElementById('con-ativo').value = c.ativo === false ? '0' : '1';
     document.getElementById('con-obs').value = c.obs || '';
+    // Código é a chave de vínculo da consultoria — bloqueado na edição para
+    // evitar quebrar referências (clientes vinculados, impressões antigas, etc.).
+    inputConCodigo.readOnly = true;
+    inputConCodigo.title = 'O código não pode ser alterado após o cadastro';
+    inputConCodigo.style.opacity = '0.6';
+    inputConCodigo.style.cursor = 'default';
   } else {
     document.getElementById('form-consultoria-titulo').textContent = '✦ Nova Consultoria';
     ['con-id','con-nome','con-codigo','con-contato','con-email','con-telefone','con-valor-hora','con-obs'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('con-ativo').value = '1';
+    inputConCodigo.readOnly = false;
+    inputConCodigo.title = '';
+    inputConCodigo.style.opacity = '';
+    inputConCodigo.style.cursor = '';
   }
   document.getElementById('form-consultoria-overlay').classList.add('open');
   document.getElementById('con-nome').focus({ preventScroll: true });
@@ -2675,9 +2940,17 @@ function fecharFormConsultoria() {
 function salvarConsultoria() {
   const id   = document.getElementById('con-id').value;
   const nome = document.getElementById('con-nome').value.trim();
-  const codigo = document.getElementById('con-codigo').value.trim();
   const msg  = document.getElementById('con-form-msg');
   if (!nome) { msg.textContent = 'Informe o nome da consultoria.'; msg.style.color = 'var(--red)'; return; }
+
+  // Código é a chave de vínculo da consultoria (usada por clientes vinculados
+  // e em impressões antigas) — uma vez cadastrado, não pode ser alterado.
+  // O campo já é readOnly na tela; aqui é a segunda camada de proteção: ao
+  // editar, sempre usa o código já salvo, ignorando o que estiver no input.
+  const consultoriaExistente = id ? db.consultorias.find(c => c.id === id) : null;
+  const codigo = consultoriaExistente
+    ? (consultoriaExistente.codigo || '')
+    : document.getElementById('con-codigo').value.trim();
 
   const duplicado = db.consultorias.find(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== id);
   if (duplicado) { msg.textContent = 'Já existe uma consultoria com esse nome.'; msg.style.color = 'var(--red)'; return; }
@@ -2709,7 +2982,10 @@ async function excluirConsultoria(id) {
   const c = db.consultorias.find(x => x.id === id);
   if (!c) return;
 
-  const clientesVinculados = (db.clientes || []).filter(cl => cl.consultoriaCodigo === (c.codigo || c.id));
+  const clientesVinculados = (db.clientes || []).filter(cl => {
+    const con = encontrarConsultoriaDoCliente(cl);
+    return con && con.id === c.id;
+  });
 
   if (clientesVinculados.length > 0) {
     const nomes = clientesVinculados.map(cl => cl.nome).join(', ');
@@ -2731,28 +3007,40 @@ async function excluirConsultoria(id) {
 }
 
 function renderHistoricoClientes() {
-  // Agregar por cliente
+  // Agregar por cliente. Quando o registro tem clienteId (vínculo único e
+  // robusto), agrupa por ele — assim um cliente renomeado continua somando
+  // no mesmo total, com o nome atual. Sem clienteId, cai no comportamento
+  // antigo: separa por nome em texto, permitindo múltiplos nomes no mesmo
+  // registro (ex.: "Acme/Beta") para dados legados.
   const map = {};
   db.registros.forEach(r => {
-    if (!r.clientes) return;
-    const nomes = r.clientes.split(/[/,;]+/).map(c => c.trim()).filter(Boolean);
-    nomes.forEach(n => {
-      if (!map[n]) map[n] = { dias: 0, min: 0, ultimo: '' };
-      map[n].dias++;
-      map[n].min += calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
-      if (!map[n].ultimo || r.data > map[n].ultimo) map[n].ultimo = r.data;
+    const cli = encontrarClienteDoRegistro(r);
+    let chaves; // [{ chave, label }]
+    if (cli) {
+      chaves = [{ chave: 'id:' + cli.id, label: cli.nome }];
+    } else {
+      if (!r.clientes) return;
+      chaves = r.clientes.split(/[/,;]+/).map(c => c.trim()).filter(Boolean)
+        .map(n => ({ chave: 'txt:' + n, label: n }));
+    }
+    chaves.forEach(({ chave, label }) => {
+      if (!map[chave]) map[chave] = { label, dias: 0, min: 0, ultimo: '' };
+      map[chave].label = label; // mantém o nome mais atual visto
+      map[chave].dias++;
+      map[chave].min += calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
+      if (!map[chave].ultimo || r.data > map[chave].ultimo) map[chave].ultimo = r.data;
     });
   });
 
   const tbody = document.getElementById('tbody-clientes');
-  const entries = Object.entries(map).sort((a,b) => b[1].min - a[1].min);
+  const entries = Object.values(map).sort((a,b) => b.min - a.min);
   if (entries.length === 0) {
     tbody.innerHTML = '<tr><td colspan="4"><div class="empty"><div class="icon">◎</div><p>Nenhum cliente com apontamentos</p></div></td></tr>';
     return;
   }
-  tbody.innerHTML = entries.map(([nome, data]) => `
+  tbody.innerHTML = entries.map(data => `
     <tr>
-      <td><span class="badge badge-blue">${escapeHtml(nome)}</span></td>
+      <td><span class="badge badge-blue">${escapeHtml(data.label)}</span></td>
       <td>${data.dias}</td>
       <td class="mono text-green fw-bold">${minToTime(data.min)}</td>
       <td>${formatDate(data.ultimo)}</td>
@@ -2813,7 +3101,7 @@ function acPdfConsultoria(val) {
     div.innerHTML = `<span class="ac-cod">${escapeHtml(c.codigo||c.id)}</span><span class="ac-nome">${escapeHtml(c.nome)}</span>`;
     div.addEventListener('mousedown', () => {
       document.getElementById('pdf-consultoria-input').value = c.codigo || c.id;
-      document.getElementById('pdf-consultoria').value = c.codigo || c.id;
+      document.getElementById('pdf-consultoria').value = c.id;
       fecharAc('ac-pdf-consultoria');
     });
     el.appendChild(div);
@@ -2837,13 +3125,20 @@ function gerarRelatorioPDF() {
     return;
   }
 
-  // Resolve IDs de clientes que pertencem à consultoria filtrada
+  // Resolve IDs de clientes que pertencem à consultoria filtrada.
+  // consultoriaFiltro agora é o id da consultoria (vínculo robusto); usamos
+  // encontrarConsultoriaDoCliente para resolver o vínculo de cada cliente
+  // (prioriza cliente.consultoriaId, com fallback para consultoriaCodigo
+  // em cadastros antigos não migrados).
   let clientesConsultoria = null;
   if (consultoriaFiltro) {
     clientesConsultoria = new Set(
       (db.clientes||[])
-        .filter(c => (c.consultoriaCodigo||'') === consultoriaFiltro)
-        .map(c => (c.codigo||'').toLowerCase())
+        .filter(c => {
+          const con = encontrarConsultoriaDoCliente(c);
+          return con && con.id === consultoriaFiltro;
+        })
+        .map(c => c.id)
     );
   }
 
@@ -2853,7 +3148,10 @@ function gerarRelatorioPDF() {
       const chave = (r.codigo || r.clientes || '').toLowerCase();
       if (cliDe  && chave < cliDe)  return false;
       if (cliAte && chave > cliAte) return false;
-      if (clientesConsultoria !== null && !clientesConsultoria.has(chave)) return false;
+      if (clientesConsultoria !== null) {
+        const cli = encontrarClienteDoRegistro(r);
+        if (!cli || !clientesConsultoria.has(cli.id)) return false;
+      }
       return true;
     })
     .sort((a,b) => a.data.localeCompare(b.data));
@@ -2869,17 +3167,20 @@ function gerarRelatorioPDF() {
   const periodoLabel = `${formatDate(dataDe)} a ${formatDate(dataAte)}`;
   const clienteLabel = '';
 
-  // Agrupa os registros por cliente (código ou nome livre)
+  // Agrupa os registros por cliente. Usa clienteId quando disponível (assim
+  // um cliente renomeado entre dois apontamentos continua saindo numa única
+  // OS); cai para código/nome em texto apenas para registros não migrados.
   const grupos = new Map();
   regs.forEach(r => {
-    const chave = (r.codigo || r.clientes || '—').toLowerCase();
+    const cli = encontrarClienteDoRegistro(r);
+    const chave = cli ? ('id:' + cli.id) : ('txt:' + (r.codigo || r.clientes || '—').toLowerCase());
     if (!grupos.has(chave)) grupos.set(chave, []);
     grupos.get(chave).push(r);
   });
 
   const clienteInfo = lista => {
     const r0 = lista[0];
-    const cli = (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r0.codigo || '').toLowerCase());
+    const cli = encontrarClienteDoRegistro(r0);
     return {
       codigo:   r0.codigo || '—',
       nome:     cli ? cli.nome : (r0.clientes || '—'),
@@ -2912,7 +3213,7 @@ function gerarRelatorioPDF() {
         <td>${r.p1i} – ${r.p1f}</td>
         <td>${r.p2i && r.p2i!=='00:00' ? r.p2i+' – '+r.p2f : '—'}</td>
         <td>${r.tsl||'00:00'}</td>
-        <td style="font-weight:700;color:#4f8ef7">${minToTime(tot)}</td>
+        <td style="font-weight:700;color:#6366f1">${minToTime(tot)}</td>
       </tr>`;
     }).join('');
 
@@ -2925,7 +3226,7 @@ function gerarRelatorioPDF() {
       </div>
     </div>
     <div style="text-align:center;margin:10px 0 16px;padding:8px 0">
-      <span style="font-size:20px;font-weight:800;color:#4f8ef7;letter-spacing:-0.5px">Relatório por Período</span>
+      <span style="font-size:20px;font-weight:800;color:#6366f1;letter-spacing:-0.5px">Relatório por Período</span>
     </div>
 
     <!-- DADOS DO CLIENTE -->
@@ -2954,7 +3255,7 @@ function gerarRelatorioPDF() {
         <tfoot>
           <tr>
             <td colspan="4" style="text-align:right;color:#555;font-weight:400;font-size:10px">Totais do período</td>
-            <td style="color:#4f8ef7">${minToTime(totalMin)}</td>
+            <td style="color:#6366f1">${minToTime(totalMin)}</td>
           </tr>
         </tfoot>
       </table>
@@ -2981,10 +3282,10 @@ function gerarRelatorioPDF() {
     /* CABEÇALHO */
     .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 20px; }
     .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .os-header .brand h1 span { color: #4f8ef7; }
+    .os-header .brand h1 span { color: #6366f1; }
     .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
     .os-meta { text-align: right; }
-    .os-meta .periodo { font-size: 16px; font-weight: 700; color: #4f8ef7; }
+    .os-meta .periodo { font-size: 16px; font-weight: 700; color: #6366f1; }
     .os-meta .sub { font-size: 11px; color: #555; margin-top: 2px; }
 
     /* SEÇÕES */
@@ -3003,7 +3304,7 @@ function gerarRelatorioPDF() {
     .kpi { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; }
     .kpi .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
     .kpi .val { font-size: 18px; font-weight: 700; color: #111; }
-    .kpi.accent .val { color: #4f8ef7; }
+    .kpi.accent .val { color: #6366f1; }
     .kpi.green  .val { color: #16a34a; }
 
     /* TABELA */
@@ -3048,7 +3349,7 @@ function imprimirOS(id) {
   const valorTotal = ((tot / 60) * vh).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
   // cliente
-  const cli = (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r.codigo || '').toLowerCase());
+  const cli = encontrarClienteDoRegistro(r);
   const nomeCliente  = cli ? cli.nome  : (r.clientes || '—');
   const codCliente   = r.codigo || '—';
   const contatoCli   = cli ? (cli.contato || '—') : '—';
@@ -3066,7 +3367,7 @@ function imprimirOS(id) {
 
   const obsHtml = r.obs || '—';
 
-  const osNum = String(r.id).slice(-6).padStart(6,'0');
+  const osNum = r.os ? String(r.os).padStart(6,'0') : String(r.id).slice(-6).padStart(6,'0');
   const dataFmt = formatDate(r.data);
   const diaSem  = getDiaSemana(r.data);
 
@@ -3078,10 +3379,10 @@ function imprimirOS(id) {
     /* cabeçalho */
     .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 18px; }
     .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .os-header .brand h1 span { color: #4f8ef7; }
+    .os-header .brand h1 span { color: #6366f1; }
     .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
     .os-meta { text-align: right; }
-    .os-meta .os-num { font-size: 18px; font-weight: 700; color: #4f8ef7; }
+    .os-meta .os-num { font-size: 18px; font-weight: 700; color: #6366f1; }
     .os-meta .os-date { font-size: 11px; color: #555; margin-top: 2px; }
     /* seções */
     .section { margin-bottom: 16px; }
@@ -3097,7 +3398,7 @@ function imprimirOS(id) {
     .hours-box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; text-align: center; }
     .hours-box .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; }
     .hours-box .val { font-size: 20px; font-weight: 700; color: #111; margin-top: 2px; }
-    .hours-box.accent .val { color: #4f8ef7; }
+    .hours-box.accent .val { color: #6366f1; }
     .hours-box.green  .val { color: #16a34a; }
     /* descrição */
     .desc-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px 14px; min-height: 80px; line-height: 1.65; color: #222; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
@@ -3114,7 +3415,7 @@ function imprimirOS(id) {
       display: flex; justify-content: space-between; align-items: center;
     }
     .os-footer .brand-foot { font-size: 12px; font-weight: 900; color: #111; letter-spacing: -0.3px; }
-    .os-footer .brand-foot span { color: #4f8ef7; }
+    .os-footer .brand-foot span { color: #6366f1; }
     .os-footer .page-info { font-size: 9px; color: #aaa; }
     @media print { body { padding-bottom: 40px; } }
     @media print { body { padding: 16px 20px; } }
@@ -3126,7 +3427,10 @@ function imprimirOS(id) {
       <h1>Controle de <span>Horas</span></h1>
       <small>${empresa}${nome ? ' · ' + nome : ''}</small>
     </div>
-
+    <div class="os-meta">
+      <div class="os-num">OS #${osNum}</div>
+      <div class="os-date">${diaSem}, ${dataFmt}</div>
+    </div>
   </div>
 
   <!-- CLIENTE -->
@@ -3207,7 +3511,7 @@ function _osHtmlBody(r) {
   const vh      = valorHoraDoRegistro(r, db.config.valorHora || 0);
   const tot     = calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl);
 
-  const cli = (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r.codigo || '').toLowerCase());
+  const cli = encontrarClienteDoRegistro(r);
   const nomeCliente = cli ? cli.nome       : (r.clientes || '—');
   const codCliente  = r.codigo || '—';
   const contatoCli  = cli ? (cli.contato  || '—') : '—';
@@ -3221,7 +3525,7 @@ function _osHtmlBody(r) {
     ? r.desc.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')
     : '<span style="color:#999">Não informado</span>';
   const obsHtml  = r.obs || '—';
-  const osNum    = String(r.id).slice(-6).padStart(6,'0');
+  const osNum    = r.os ? String(r.os).padStart(6,'0') : String(r.id).slice(-6).padStart(6,'0');
   const dataFmt  = formatDate(r.data);
   const diaSem   = getDiaSemana(r.data);
 
@@ -3282,8 +3586,11 @@ function _filtrarOSLote() {
   if (consultoriaFiltro) {
     clientesConsultoria = new Set(
       (db.clientes||[])
-        .filter(c => (c.consultoriaCodigo||'') === consultoriaFiltro)
-        .map(c => (c.codigo||'').toLowerCase())
+        .filter(c => {
+          const con = encontrarConsultoriaDoCliente(c);
+          return con && con.id === consultoriaFiltro;
+        })
+        .map(c => c.id)
     );
   }
 
@@ -3293,7 +3600,10 @@ function _filtrarOSLote() {
     const chave = (r.codigo || r.clientes || '').toLowerCase();
     if (cliDe  && chave < cliDe)  return false;
     if (cliAte && chave > cliAte) return false;
-    if (clientesConsultoria !== null && !clientesConsultoria.has(chave)) return false;
+    if (clientesConsultoria !== null) {
+      const cli = encontrarClienteDoRegistro(r);
+      if (!cli || !clientesConsultoria.has(cli.id)) return false;
+    }
     return true;
   }).sort((a,b) => a.data.localeCompare(b.data) || (a.clientes||a.codigo||'').localeCompare(b.clientes||b.codigo||''));
 }
@@ -3330,7 +3640,7 @@ function acOsConsultoria(val) {
     div.innerHTML = `<span class="ac-cod">${escapeHtml(c.codigo||c.id)}</span><span class="ac-nome">${escapeHtml(c.nome)}</span>`;
     div.addEventListener('mousedown', () => {
       document.getElementById('os-consultoria-input').value = c.codigo || c.id;
-      document.getElementById('os-consultoria').value = c.codigo || c.id;
+      document.getElementById('os-consultoria').value = c.id;
       fecharAc('ac-os-consultoria');
     });
     el.appendChild(div);
@@ -3360,10 +3670,10 @@ function imprimirOSLote() {
     .os-page:last-child { page-break-after: avoid; }
     .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 18px; }
     .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .os-header .brand h1 span { color: #4f8ef7; }
+    .os-header .brand h1 span { color: #6366f1; }
     .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
     .os-meta { text-align: right; }
-    .os-meta .os-num { font-size: 18px; font-weight: 700; color: #4f8ef7; }
+    .os-meta .os-num { font-size: 18px; font-weight: 700; color: #6366f1; }
     .os-meta .os-date { font-size: 11px; color: #555; margin-top: 2px; }
     .section { margin-bottom: 16px; }
     .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #777; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 10px; }
@@ -3376,7 +3686,7 @@ function imprimirOSLote() {
     .hours-box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; text-align: center; }
     .hours-box .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; }
     .hours-box .val { font-size: 20px; font-weight: 700; color: #111; margin-top: 2px; }
-    .hours-box.accent .val { color: #4f8ef7; }
+    .hours-box.accent .val { color: #6366f1; }
     .desc-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px 14px; min-height: 80px; line-height: 1.65; color: #222; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
     .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding-top: 16px; }
     .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
@@ -3428,7 +3738,7 @@ function acApConsultoria(val) {
     div.innerHTML = `<span class="ac-cod">${escapeHtml(c.codigo||c.id)}</span><span class="ac-nome">${escapeHtml(c.nome)}</span>`;
     div.addEventListener('mousedown', () => {
       document.getElementById('ap-consultoria-input').value = c.codigo || c.id;
-      document.getElementById('ap-consultoria').value = c.codigo || c.id;
+      document.getElementById('ap-consultoria').value = c.id;
       fecharAc('ac-ap-consultoria');
     });
     el.appendChild(div);
@@ -3449,8 +3759,11 @@ function _filtrarRelatorioApontamentos() {
   if (consultoriaFiltro) {
     clientesConsultoria = new Set(
       (db.clientes||[])
-        .filter(c => (c.consultoriaCodigo||'') === consultoriaFiltro)
-        .map(c => (c.codigo||'').toLowerCase())
+        .filter(c => {
+          const con = encontrarConsultoriaDoCliente(c);
+          return con && con.id === consultoriaFiltro;
+        })
+        .map(c => c.id)
     );
   }
 
@@ -3460,7 +3773,10 @@ function _filtrarRelatorioApontamentos() {
     const chave = (r.codigo || r.clientes || '').toLowerCase();
     if (cliDe  && chave < cliDe)  return false;
     if (cliAte && chave > cliAte) return false;
-    if (clientesConsultoria !== null && !clientesConsultoria.has(chave)) return false;
+    if (clientesConsultoria !== null) {
+      const cli = encontrarClienteDoRegistro(r);
+      if (!cli || !clientesConsultoria.has(cli.id)) return false;
+    }
     return true;
   }).sort((a,b) => a.data.localeCompare(b.data) || (a.codigo||a.clientes||'').localeCompare(b.codigo||b.clientes||''));
 }
@@ -3496,7 +3812,7 @@ function gerarRelatorioApontamentosPDF() {
   let totalValor = 0;
 
   const linhas = regs.map(r => {
-    const cli = (db.clientes || []).find(c => (c.codigo||'').toLowerCase() === (r.codigo||'').toLowerCase());
+    const cli = encontrarClienteDoRegistro(r);
     const descricaoCliente = cli ? cli.nome : (r.clientes || '—');
 
     const temP2 = !!(r.p2i && r.p2f && r.p2i !== '00:00');
@@ -3511,19 +3827,23 @@ function gerarRelatorioApontamentosPDF() {
     totalMin += totalMinReg;
     totalValor += valorReg;
 
+    const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const dow  = new Date(r.data + 'T00:00:00').getDay();
+
     const colunaValor = mostrarValor
-      ? `<td class="mono right valor-col">${fmtBRL(valorReg)}</td>`
+      ? `<td class="right td-valor">${fmtBRL(valorReg)}</td>`
       : '';
 
     return `<tr>
-      <td>${formatDate(r.data)}</td>
-      <td>${r.codigo || '—'}</td>
-      <td class="desc-cli">${escapeHtml(descricaoCliente)}</td>
-      <td class="mono center">${hrInicial}</td>
-      <td class="mono center">${hrFinal || '—'}</td>
-      <td class="mono center">${minToTime(descontoMin)}</td>
-      <td class="mono center">${translado}</td>
-      <td class="mono center total-col">${minToTime(totalMinReg)}</td>
+      <td class="td-os">${r.os ? '#' + String(r.os).padStart(6,'0') : '—'}</td>
+      <td class="td-data">${formatDate(r.data)}</td>
+      <td class="mono" style="color:#555;font-size:10px">${r.codigo || '—'}</td>
+      <td class="td-cli">${escapeHtml(descricaoCliente)}</td>
+      <td class="center mono">${hrInicial}</td>
+      <td class="center mono">${hrFinal || '—'}</td>
+      <td class="center mono" style="color:#888">${minToTime(descontoMin)}</td>
+      <td class="center mono" style="color:#888">${translado}</td>
+      <td class="center td-total">${minToTime(totalMinReg)}</td>
       ${colunaValor}
     </tr>`;
   }).join('');
@@ -3537,69 +3857,197 @@ function gerarRelatorioApontamentosPDF() {
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
   <title>Relatório de Apontamentos — ${periodoLabel}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #111; font-size: 12px; padding: 28px 32px; }
+    body { font-family: 'Inter', Arial, sans-serif; color: #111; font-size: 12px; background: #fff; }
+    .page-wrap { padding: 32px 36px; max-width: 900px; margin: 0 auto; }
 
-    .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 20px; }
-    .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .os-header .brand h1 span { color: #4f8ef7; }
-    .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
-    .os-meta { text-align: right; }
-    .os-meta .periodo { font-size: 16px; font-weight: 700; color: #4f8ef7; }
-    .os-meta .sub { font-size: 11px; color: #555; margin-top: 2px; }
+    /* ── CABEÇALHO ── */
+    .report-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      padding-bottom: 16px; margin-bottom: 24px;
+      border-bottom: 3px solid #6366f1;
+    }
+    .brand h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.8px; color: #111; }
+    .brand h1 span { color: #6366f1; }
+    .brand .empresa { font-size: 11px; color: #888; margin-top: 3px; font-weight: 500; }
+    .report-meta { text-align: right; }
+    .report-meta .report-title { font-size: 18px; font-weight: 800; color: #6366f1; letter-spacing: -0.3px; }
+    .report-meta .report-periodo { font-size: 11px; color: #666; margin-top: 4px; font-weight: 500; }
+    .report-meta .report-gerado { font-size: 10px; color: #aaa; margin-top: 2px; }
 
+    /* ── CARDS KPI ── */
+    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+    .kpi {
+      border-radius: 10px; padding: 14px 16px;
+      border: 1px solid #e5e7eb;
+      background: #fafafa;
+    }
+    .kpi .kpi-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin-bottom: 6px; }
+    .kpi .kpi-val { font-size: 20px; font-weight: 800; color: #111; font-family: 'JetBrains Mono', monospace; }
+    .kpi.accent { background: #eef2ff; border-color: #c7d2fe; }
+    .kpi.accent .kpi-val { color: #4f46e5; }
+    .kpi.green  { background: #f0fdf4; border-color: #bbf7d0; }
+    .kpi.green  .kpi-val { color: #16a34a; }
+
+    /* ── TABELA ── */
+    .table-section { margin-bottom: 28px; }
+    .table-section-title {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px;
+      color: #6366f1; margin-bottom: 10px; padding-bottom: 6px;
+      border-bottom: 2px solid #e0e7ff;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    thead th { background: #f5f5f5; border: 1px solid #e0e0e0; padding: 8px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #555; }
-    thead th.center, td.center { text-align: center; }
-    thead th.right, td.right { text-align: right; }
-    tbody td { border: 1px solid #eee; padding: 8px; vertical-align: middle; }
-    tbody tr:nth-child(even) td { background: #fafafa; }
-    tbody tr:last-child td { border-bottom: 1px solid #ddd; }
-    .desc-cli { color: #2563eb; font-weight: 600; }
-    .total-col { font-weight: 700; }
-    .valor-col { font-weight: 700; color: #16a34a; }
-    tfoot td { border: 1px solid #e0e0e0; padding: 9px 8px; font-weight: 700; background: #f5f5f5; font-size: 11px; }
+    thead tr { background: #6366f1; }
+    thead th {
+      padding: 9px 10px; text-align: left;
+      font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+      color: #fff; border: none;
+    }
+    thead th.center { text-align: center; }
+    thead th.right  { text-align: right; }
+    tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.1s; }
+    tbody tr:nth-child(even) { background: #f9fafb; }
+    tbody tr:last-child { border-bottom: 2px solid #e5e7eb; }
+    tbody td { padding: 8px 10px; vertical-align: middle; color: #374151; }
+    tbody td.mono { font-family: 'JetBrains Mono', monospace; }
+    tbody td.center { text-align: center; }
+    tbody td.right  { text-align: right; }
+    .td-os { font-size: 10px; font-weight: 700; color: #6366f1; font-family: 'JetBrains Mono', monospace; }
+    .td-data { font-weight: 600; color: #111; white-space: nowrap; }
+    .td-dia  { font-size: 10px; background: #f3f4f6; border-radius: 4px; padding: 2px 6px; font-weight: 600; color: #555; display: inline-block; }
+    .td-cli  { font-weight: 700; color: #4f46e5; }
+    .td-total { font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono', monospace; }
+    .td-valor { font-weight: 800; color: #16a34a; font-family: 'JetBrains Mono', monospace; }
+    tfoot tr { background: #1e1b4b; }
+    tfoot td {
+      padding: 10px 10px; font-weight: 700; font-size: 11px; color: #fff;
+      border: none;
+    }
+    tfoot td.right { text-align: right; }
+    tfoot .tf-total { color: #a5b4fc; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+    tfoot .tf-valor { color: #6ee7b7; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
 
-    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; }
-    .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
+    /* ── ASSINATURAS ── */
+    .sign-section { margin-top: 44px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    .sign-section .sign-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin-bottom: 20px; }
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+    .sign-block { text-align: center; }
+    .sign-line { border-top: 1.5px solid #374151; padding-top: 8px; }
+    .sign-name { font-size: 11px; font-weight: 700; color: #111; }
+    .sign-role { font-size: 9px; color: #9ca3af; margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    @media print { body { padding: 16px 20px; } @page { margin: 0; } thead { display: table-header-group; } }
+    /* ── RODAPÉ ── */
+    .report-footer {
+      margin-top: 24px; padding-top: 12px; border-top: 1px solid #f0f0f0;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 9px; color: #ccc;
+    }
+
+    @media print {
+      body { background: #fff; }
+      .page-wrap { padding: 16px 20px; }
+      @page { margin: 0; size: A4 portrait; }
+      thead { display: table-header-group; }
+      table { font-size: 9px; }
+      thead th { padding: 7px 6px; font-size: 8px; }
+      tbody td { padding: 6px 6px; }
+      tfoot td { padding: 7px 6px; }
+      .kpi-row { gap: 8px; margin-bottom: 14px; }
+      .kpi { padding: 10px 12px; }
+      .kpi .kpi-val { font-size: 15px; }
+      .report-header { margin-bottom: 14px; }
+      .brand h1 { font-size: 20px; }
+      .report-meta .report-title { font-size: 14px; }
+    }
   </style></head><body>
-    <div class="os-header">
+  <div class="page-wrap">
+
+    <!-- CABEÇALHO -->
+    <div class="report-header">
       <div class="brand">
         <h1>Controle de <span>Horas</span></h1>
-        <small>${escapeHtml(empresa)}</small>
+        <div class="empresa">${escapeHtml(empresa)}${nome ? ' · ' + escapeHtml(nome) : ''}</div>
       </div>
-      <div class="os-meta">
-        <div class="periodo">Relatório de Apontamentos</div>
-        <div class="sub">${periodoLabel}</div>
+      <div class="report-meta">
+        <div class="report-title">Relatório de Apontamentos</div>
+        <div class="report-periodo">${periodoLabel}</div>
+        <div class="report-gerado">Gerado em ${new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
       </div>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Data</th><th>Código</th><th>Descrição Cliente</th>
-          <th class="center">Hr. Inicial</th><th class="center">Hr. Final</th>
-          <th class="center">Desconto</th><th class="center">Traslado</th><th class="center">Total</th>
-          ${thValor}
-        </tr>
-      </thead>
-      <tbody>${linhas}</tbody>
-      <tfoot>
-        <tr>
-          <td colspan="${colspanTotal}" style="text-align:right">Total</td>
-          <td class="center">${minToTime(totalMin)}</td>
-          ${tdTotalValor}
-        </tr>
-      </tfoot>
-    </table>
-
-    <div class="sign-row">
-      <div class="sign-line">Assinatura do Prestador<br>${escapeHtml(nome || empresa)}</div>
-      <div class="sign-line">Assinatura do Responsável / Cliente</div>
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi accent">
+        <div class="kpi-label">Total de Horas</div>
+        <div class="kpi-val">${minToTime(totalMin)}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Registros</div>
+        <div class="kpi-val">${regs.length}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Dias Trabalhados</div>
+        <div class="kpi-val">${new Set(regs.filter(r=>calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl)>0).map(r=>r.data)).size}</div>
+      </div>
+      ${mostrarValor ? `<div class="kpi green"><div class="kpi-label">Valor Total</div><div class="kpi-val">${fmtBRL(totalValor)}</div></div>` : `<div class="kpi"><div class="kpi-label">Média / Dia</div><div class="kpi-val">${regs.length > 0 ? minToTime(Math.round(totalMin / regs.length)) : '—'}</div></div>`}
     </div>
 
+    <!-- TABELA -->
+    <div class="table-section">
+      <div class="table-section-title">Apontamentos do Período</div>
+      <table>
+        <thead>
+          <tr>
+            <th>OS</th>
+            <th>Data</th>
+            <th>Código</th>
+            <th>Cliente</th>
+            <th class="center">Hr. Inicial</th>
+            <th class="center">Hr. Final</th>
+            <th class="center">Desconto</th>
+            <th class="center">Traslado</th>
+            <th class="center">Total</th>
+            ${mostrarValor ? `<th class="right">Valor (R$)</th>` : ''}
+          </tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="${mostrarValor ? 8 : 8}" style="text-align:right;color:#a5b4fc;font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Total Geral</td>
+            <td class="center tf-total">${minToTime(totalMin)}</td>
+            ${mostrarValor ? `<td class="right tf-valor">${fmtBRL(totalValor)}</td>` : ''}
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- ASSINATURAS -->
+    <div class="sign-section">
+      <div class="sign-title">Assinaturas</div>
+      <div class="sign-row">
+        <div class="sign-block">
+          <div class="sign-line">
+            <div class="sign-name">${escapeHtml(nome || empresa || 'Prestador')}</div>
+            <div class="sign-role">Assinatura do Prestador de Serviços</div>
+          </div>
+        </div>
+        <div class="sign-block">
+          <div class="sign-line">
+            <div class="sign-name">&nbsp;</div>
+            <div class="sign-role">Assinatura do Responsável / Cliente</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RODAPÉ -->
+    <div class="report-footer">
+      <span>Controle de Horas · ${escapeHtml(empresa)}</span>
+      <span>Período: ${periodoLabel}</span>
+    </div>
+
+  </div>
   <scr` + `ipt>window.onload = () => setTimeout(() => window.print(), 300);</scr` + `ipt>
   </body></html>`;
 
@@ -3659,6 +4107,14 @@ function importarArquivo(event) {
       const ok = await confirmDialog(`Importar ${data.registros.length} registros? Os dados atuais serão substituídos.`, 'Importar dados', 'Importar');
       if (!ok) return;
       db = data;
+      // Backups antigos podem não ter o cadastro de clientes no formato atual
+      // (objetos com id) nem o vínculo r.clienteId nos registros — roda as
+      // mesmas migrações usadas no carregamento normal do app.
+      if (!Array.isArray(db.consultorias)) db.consultorias = [];
+      migrarClientes();
+      migrarConsultoriaId();
+      migrarClienteId();
+      migrarNumerosOS();
       salvarDB();
       toast(`${db.registros.length} registros importados!`);
       renderAll();
@@ -3692,11 +4148,31 @@ function initRelatorios() {
   selMes.innerHTML = '<option value="">Todos os meses</option>' +
     meses.map((m,i) => `<option value="${i}">${m}</option>`).join('');
 
-  // Popula seletor de clientes
-  const clienteNomes = [...new Set(db.registros.map(r => r.clientes || r.codigo || '').filter(Boolean))].sort();
+  // Popula seletor de clientes. Usa o id do cliente cadastrado como valor da
+  // opção (assim um cliente renomeado continua sendo uma única entrada na
+  // lista, com todo o histórico). Registros "órfãos" — sem cliente cadastrado
+  // correspondente — entram como opções extras por texto, para não esconder
+  // dados antigos ainda não migrados.
+  const idsComRegistro = new Set();
+  const textosOrfaos = new Set();
+  db.registros.forEach(r => {
+    const cli = encontrarClienteDoRegistro(r);
+    if (cli) idsComRegistro.add(cli.id);
+    else {
+      const t = (r.clientes || r.codigo || '').trim();
+      if (t) textosOrfaos.add(t);
+    }
+  });
+  const opcoesClientes = (db.clientes || [])
+    .filter(c => idsComRegistro.has(c.id))
+    .map(c => ({ value: 'id:' + c.id, label: c.nome }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+  const opcoesOrfas = [...textosOrfaos]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+    .map(t => ({ value: 'txt:' + t, label: t }));
   const selCli = document.getElementById('rel-cliente-filtro');
   selCli.innerHTML = '<option value="">Todos os clientes</option>' +
-    clienteNomes.map(n => `<option value="${n}">${n}</option>`).join('');
+    [...opcoesClientes, ...opcoesOrfas].map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join('');
 
   renderRelatorios();
 }
@@ -3710,7 +4186,16 @@ function relFiltrarRegistros() {
     const d = new Date(r.data + 'T00:00:00');
     if (r.data.slice(0,4) !== ano) return false;
     if (mesVal !== '' && d.getMonth() !== parseInt(mesVal)) return false;
-    if (cliVal && (r.clientes || r.codigo || '') !== cliVal) return false;
+    if (cliVal) {
+      if (cliVal.startsWith('id:')) {
+        const cli = encontrarClienteDoRegistro(r);
+        if (!cli || cli.id !== cliVal.slice(3)) return false;
+      } else if (cliVal.startsWith('txt:')) {
+        const cli = encontrarClienteDoRegistro(r);
+        if (cli) return false; // este registro tem cliente cadastrado; "órfão" não inclui
+        if ((r.clientes || r.codigo || '').trim() !== cliVal.slice(4)) return false;
+      }
+    }
     return true;
   });
 }
@@ -3741,7 +4226,9 @@ function relBarChart(dados, labelKey, valKey, labelFn) {
 }
 
 function renderRelMensal(regs, fmt2) {
-  document.getElementById('rel-table-title').textContent = '📋 Resumo Mensal';
+  // Alterna visibilidade: mostra cards, esconde tabela
+  document.getElementById('rel-cards-wrap').style.display = 'none';
+  document.getElementById('rel-table-wrap').style.display = 'none';
 
   const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const mesesFull = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -3754,37 +4241,86 @@ function renderRelMensal(regs, fmt2) {
   }).filter(d => d.val > 0 || d.alim > 0);
 
   const vh = db.config.valorHora || 0;
-  document.getElementById('rel-thead').innerHTML = `<tr>
-    <th>Mês</th><th>Dias</th><th>Horas</th><th>Faturamento</th><th>Alimentação</th><th>Transporte</th>
-  </tr>`;
+  const grid = document.getElementById('rel-cards-grid');
+  const empty = document.getElementById('rel-cards-empty');
 
-  const rows = porMes.map(d => {
-    // Faturamento do mês = soma, por registro, de (minutos * valorHora da
-    // consultoria do cliente daquele registro) / 60 — não um vh único fixo.
+  if (!porMes.length) {
+    grid.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const maxMin = Math.max(...porMes.map(d => d.val));
+
+  grid.innerHTML = porMes.map(d => {
     const fat = d.regs.reduce((a,reg) => {
       const minReg = calcTotal(reg.p1i,reg.p1f,reg.p2i,reg.p2f,reg.tsl);
       return a + (minReg * valorHoraDoRegistro(reg, vh)) / 60;
     }, 0);
-    return `<tr>
-      <td>${d.labelFull}</td>
-      <td class="mono">${d.dias}</td>
-      <td class="mono text-accent">${minToTime(d.val)}</td>
-      <td class="mono text-green">${fat>0 ? 'R$\u00a0'+fat.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '<span style="color:var(--muted)">—</span>'}</td>
-      <td class="mono">${d.alim>0?'R$\u00a0'+d.alim.toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
-      <td class="mono">${d.transp>0?'R$\u00a0'+d.transp.toLocaleString('pt-BR',{minimumFractionDigits:2}):'<span style="color:var(--muted)">—</span>'}</td>
-    </tr>`;
+    const pct = maxMin > 0 ? Math.round((d.val / maxMin) * 100) : 0;
+    const fatFmt = fat > 0 ? 'R$ ' + fat.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
+    const alimFmt = d.alim > 0 ? 'R$ ' + d.alim.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
+    const transpFmt = d.transp > 0 ? 'R$ ' + d.transp.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '—';
+    return `<div style="
+      background:var(--surface2);
+      border:1px solid var(--border);
+      border-radius:var(--radius-lg);
+      padding:18px 20px;
+      position:relative;
+      overflow:hidden;
+      transition:border-color .15s,box-shadow .15s;
+    " onmouseenter="this.style.borderColor='var(--border2)';this.style.boxShadow='var(--shadow-md)'"
+       onmouseleave="this.style.borderColor='var(--border)';this.style.boxShadow=''">
+      <!-- barra de progresso topo -->
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--border2)">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s ease"></div>
+      </div>
+      <!-- mês + dias -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;margin-top:6px">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">${d.labelFull}</div>
+        <div style="font-size:11px;color:var(--muted);background:var(--surface3);border:1px solid var(--border);border-radius:20px;padding:2px 9px;font-family:'JetBrains Mono',monospace">
+          ${d.dias}d
+        </div>
+      </div>
+      <!-- horas destaque -->
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Horas</div>
+        <div style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent-hover);letter-spacing:-0.5px">${minToTime(d.val)}</div>
+      </div>
+      <!-- métricas secundárias -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding-top:14px;border-top:1px solid var(--border)">
+        <div>
+          <div style="font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">Faturado</div>
+          <div style="font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;color:${fat>0?'var(--green-light)':'var(--muted)'}">${fatFmt}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">Aliment.</div>
+          <div style="font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;color:${d.alim>0?'var(--text2)':'var(--muted)'}">${alimFmt}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">Transp.</div>
+          <div style="font-size:12px;font-weight:600;font-family:'JetBrains Mono',monospace;color:${d.transp>0?'var(--text2)':'var(--muted)'}">${transpFmt}</div>
+        </div>
+      </div>
+    </div>`;
   }).join('');
-
-  document.getElementById('rel-tbody').innerHTML = rows || `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:40px">Nenhum dado no período</td></tr>`;
 }
 
 function renderRelCliente(regs, fmt2) {
+  document.getElementById('rel-cards-wrap').style.display = 'none';
+  document.getElementById('rel-table-wrap').style.display = '';
   document.getElementById('rel-table-title').textContent = '📋 Resumo por Cliente';
 
+  // Agrupa por clienteId quando disponível, para que um cliente renomeado
+  // continue consolidado numa única linha (com o nome atual). Registros
+  // órfãos (sem cliente cadastrado) caem no fallback por texto.
   const mapa = {};
   regs.forEach(r => {
-    const key = r.clientes || r.codigo || 'Sem cliente';
-    if (!mapa[key]) mapa[key] = {label:key, val:0, alim:0, transp:0, dias:new Set(), regs:[]};
+    const cli = encontrarClienteDoRegistro(r);
+    const key = cli ? ('id:' + cli.id) : ('txt:' + (r.clientes || r.codigo || 'Sem cliente'));
+    const label = cli ? cli.nome : (r.clientes || r.codigo || 'Sem cliente');
+    if (!mapa[key]) mapa[key] = {label, val:0, alim:0, transp:0, dias:new Set(), regs:[]};
     const min = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
     mapa[key].val += min;
     mapa[key].alim += (r.alim||0);
@@ -3822,6 +4358,8 @@ function renderRelCliente(regs, fmt2) {
 }
 
 function renderRelDiario(regs, fmt2) {
+  document.getElementById('rel-cards-wrap').style.display = 'none';
+  document.getElementById('rel-table-wrap').style.display = '';
   document.getElementById('rel-table-title').textContent = '📋 Registros Detalhados';
 
   const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -3874,14 +4412,16 @@ function exportarRelatorioCSV() {
     csv = 'Cliente;Dias;Apontamentos;Horas;Alimentação;Transporte\n';
     const mapa = {};
     regs.forEach(r => {
-      const k = r.clientes||r.codigo||'Sem cliente';
-      if (!mapa[k]) mapa[k]={val:0,alim:0,transp:0,dias:new Set(),regs:0};
+      const cli = encontrarClienteDoRegistro(r);
+      const k = cli ? ('id:' + cli.id) : ('txt:' + (r.clientes || r.codigo || 'Sem cliente'));
+      const label = cli ? cli.nome : (r.clientes || r.codigo || 'Sem cliente');
+      if (!mapa[k]) mapa[k]={label,val:0,alim:0,transp:0,dias:new Set(),regs:0};
       const min=calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
       mapa[k].val+=min; mapa[k].alim+=(r.alim||0); mapa[k].transp+=(r.transp||0); mapa[k].regs++;
       if(min>0) mapa[k].dias.add(r.data);
     });
-    Object.entries(mapa).sort((a,b)=>b[1].val-a[1].val).forEach(([k,d]) => {
-      csv += `${k};${d.dias.size};${d.regs};${minToTime(d.val)};${d.alim.toFixed(2)};${d.transp.toFixed(2)}\n`;
+    Object.values(mapa).sort((a,b)=>b.val-a.val).forEach(d => {
+      csv += `${d.label};${d.dias.size};${d.regs};${minToTime(d.val)};${d.alim.toFixed(2)};${d.transp.toFixed(2)}\n`;
     });
   } else {
     csv = 'Data;Dia;Cliente;Total;Extra;Alimentação;Transporte;Obs\n';
@@ -3933,17 +4473,46 @@ function aplicarFatParams() {
 // ============================================================
 let fatAno = new Date().getFullYear();
 
-// Retorna o valorHora a aplicar a um registro específico:
-// busca o cliente do registro (via r.codigo), depois a consultoria
-// vinculada a esse cliente (via cliente.consultoriaCodigo) e usa o
-// valorHora da consultoria. Se não houver cliente/consultoria/valor
-// configurado, cai no valor padrão (fallbackVh = db.config.valorHora).
-function valorHoraDoRegistro(r, fallbackVh) {
-  const cli = (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r.codigo || '').toLowerCase());
-  if (cli && cli.consultoriaCodigo) {
-    const con = (db.consultorias || []).find(x => (x.codigo || x.id) === cli.consultoriaCodigo);
-    if (con && con.valorHora) return Number(con.valorHora);
+// Encontra o cliente vinculado a um registro de apontamento.
+// Prioriza r.clienteId (vínculo robusto por ID, não muda se o cliente for
+// renomeado). Cai para r.codigo (comparação de texto) apenas em registros
+// antigos que ainda não passaram pela migração / não têm clienteId.
+function encontrarClienteDoRegistro(r) {
+  if (r.clienteId) {
+    const porId = (db.clientes || []).find(c => c.id === r.clienteId);
+    if (porId) return porId;
   }
+  return (db.clientes || []).find(c => (c.codigo || '').toLowerCase() === (r.codigo || '').toLowerCase());
+}
+
+// Encontra a consultoria vinculada a um cliente.
+// Prioriza cliente.consultoriaId (vínculo robusto por ID, não muda se o
+// código/nome da consultoria for editado). Cai para
+// cliente.consultoriaCodigo (comparação de texto) apenas em cadastros
+// antigos que ainda não passaram pela migração.
+function encontrarConsultoriaDoCliente(cli) {
+  if (!cli) return null;
+  if (cli.consultoriaId) {
+    const porId = (db.consultorias || []).find(x => x.id === cli.consultoriaId);
+    if (porId) return porId;
+  }
+  if (cli.consultoriaCodigo) {
+    return (db.consultorias || []).find(x => (x.codigo || x.id) === cli.consultoriaCodigo) || null;
+  }
+  return null;
+}
+
+// Retorna o valorHora a aplicar a um registro específico:
+// busca o cliente do registro (via r.clienteId, com fallback para r.codigo
+// em registros antigos que ainda não foram migrados), depois a consultoria
+// vinculada a esse cliente (via cliente.consultoriaId, com fallback para
+// cliente.consultoriaCodigo) e usa o valorHora da consultoria. Se não houver
+// cliente/consultoria/valor configurado, cai no valor padrão
+// (fallbackVh = db.config.valorHora).
+function valorHoraDoRegistro(r, fallbackVh) {
+  const cli = encontrarClienteDoRegistro(r);
+  const con = encontrarConsultoriaDoCliente(cli);
+  if (con && con.valorHora) return Number(con.valorHora);
   return fallbackVh;
 }
 
@@ -3984,7 +4553,8 @@ function renderFaturamento() {
     const horas   = minMes / 60;
     // Faturamento do mês = soma, por registro, de (minutos do registro * valorHora
     // da consultoria do cliente daquele registro) / 60. Cada registro pode ter um
-    // valor-hora diferente, conforme a consultoria do cliente apontado em r.codigo.
+    // valor-hora diferente, conforme a consultoria do cliente vinculado (via
+    // r.clienteId, com fallback para r.codigo em registros não migrados).
     const fat = regs.reduce((a,r) => {
       const minReg = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
       const vhReg  = valorHoraDoRegistro(r, vh);
@@ -4027,7 +4597,7 @@ function renderFaturamento() {
 
   const zeroTot = v => v === 0 ? '<span class="zero">—</span>' : 'R$&nbsp;' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   document.getElementById('fat-tfoot').innerHTML = `<tr>
-    <td colspan="3" style="text-align:right;color:var(--muted);font-family:'Syne',sans-serif">Total</td>
+    <td colspan="3" style="text-align:right;color:var(--muted);font-family:'Inter',sans-serif">Total</td>
     <td class="${totFat>0?'pos':''}">${zeroTot(totFat)}</td>
     <td class="${totImp>0?'neg':''}">${zeroTot(totImp)}</td>
     <td class="${totCont>0?'neg':''}">${zeroTot(totCont)}</td>
