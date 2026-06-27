@@ -1332,7 +1332,15 @@
       </div>
     </div>
     <div class="sep"></div>
-    <div class="form-grid cols2">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Tipo de Atendimento</label>
+        <select id="f-tipo">
+          <option value="">— Não informado</option>
+          <option value="Presencial">Presencial</option>
+          <option value="Remoto">Remoto</option>
+        </select>
+      </div>
       <div class="form-group">
         <label>Alimentação (R$)</label>
         <input type="number" id="f-alimentacao" value="0" min="0" step="0.01">
@@ -1409,8 +1417,16 @@
       </div>
     </div>
     <div class="sep"></div>
-    <!-- Linha 3: Valores -->
-    <div class="form-grid cols2">
+    <!-- Linha 3: Tipo + Valores -->
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Tipo de Atendimento</label>
+        <select id="edit-tipo">
+          <option value="">— Não informado</option>
+          <option value="Presencial">Presencial</option>
+          <option value="Remoto">Remoto</option>
+        </select>
+      </div>
       <div class="form-group"><label>Alimentação (R$)</label><input type="number" id="edit-alim" min="0" step="0.01"></div>
       <div class="form-group"><label>Transporte (R$)</label><input type="number" id="edit-transp" min="0" step="0.01"></div>
     </div>
@@ -2079,6 +2095,7 @@ function limparForm() {
   document.getElementById('f-cliente-id').value = '';
   document.getElementById('f-obs').value = '';
   document.getElementById('f-desc').value = '';
+  document.getElementById('f-tipo').value = '';
   document.getElementById('f-p1-inicio').value = '09:00';
   document.getElementById('f-p1-fim').value = '12:00';
   document.getElementById('f-p2-inicio').value = '13:00';
@@ -2135,7 +2152,8 @@ async function salvarApontamento() {
     clientes: document.getElementById('f-clientes').value.trim(),
     clienteId: document.getElementById('f-cliente-id').value || null,
     obs: document.getElementById('f-obs').value.trim(),
-    desc: document.getElementById('f-desc').value.trim()
+    desc: document.getElementById('f-desc').value.trim(),
+    tipo: document.getElementById('f-tipo').value || ''
   };
 
   // Duplicata: mesmo dia + mesmo cliente. Prioriza comparar por clienteId
@@ -2541,7 +2559,8 @@ function visualizarRegistro(id) {
     </div>
     <div class="sep"></div>
     <!-- Valores -->
-    <div class="view-grid cols2">
+    <div class="view-grid cols3">
+      <div class="view-field"><div class="vf-label">Tipo de Atendimento</div><div class="vf-value">${r.tipo || '—'}</div></div>
       <div class="view-field"><div class="vf-label">Alimentação (R$)</div><div class="vf-value">R$ ${(r.alim||0).toFixed(2)}</div></div>
       <div class="view-field"><div class="vf-label">Transporte (R$)</div><div class="vf-value">R$ ${(r.transp||0).toFixed(2)}</div></div>
     </div>
@@ -2589,6 +2608,7 @@ function copiarRegistro(id) {
   document.getElementById('f-cliente-id').value = r.clienteId || '';
   document.getElementById('f-obs').value = r.obs || '';
   document.getElementById('f-desc').value = r.desc || '';
+  document.getElementById('f-tipo').value = r.tipo || '';
   atualizarTotal();
   document.getElementById('modal-apontamento-overlay').classList.add('open');
   toast('Dados copiados — escolha a data do novo registro');
@@ -2612,6 +2632,7 @@ function abrirEdicao(id) {
   document.getElementById('edit-tsl').value = r.tsl;
   document.getElementById('edit-alim').value = r.alim || 0;
   document.getElementById('edit-transp').value = r.transp || 0;
+  document.getElementById('edit-tipo').value = r.tipo || '';
   document.getElementById('modal-overlay').classList.add('open');
   atualizarTotalEdit();
 }
@@ -2653,7 +2674,8 @@ function salvarEdicao() {
     codigo: document.getElementById('edit-codigo').value.trim(),
     clienteId: document.getElementById('edit-cliente-id').value || null,
     obs: document.getElementById('edit-obs').value.trim(),
-    desc: document.getElementById('edit-desc').value.trim()
+    desc: document.getElementById('edit-desc').value.trim(),
+    tipo: document.getElementById('edit-tipo').value || ''
   };
   db.registros.sort((a,b) => a.data.localeCompare(b.data));
   salvarDB();
