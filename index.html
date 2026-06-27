@@ -3213,20 +3213,22 @@ function gerarRelatorioPDF() {
         <td>${r.p1i} – ${r.p1f}</td>
         <td>${r.p2i && r.p2i!=='00:00' ? r.p2i+' – '+r.p2f : '—'}</td>
         <td>${r.tsl||'00:00'}</td>
-        <td style="font-weight:700;color:#6366f1">${minToTime(tot)}</td>
+        <td class="accent">${minToTime(tot)}</td>
       </tr>`;
     }).join('');
 
     return `
   <div class="page"${isUltima ? '' : ' style="page-break-after:always"'}>
     <!-- CABEÇALHO -->
-    <div class="os-header">
+    <div class="report-header">
       <div class="brand">
         <h1>Controle de <span>Horas</span></h1>
+        <div class="empresa">${escapeHtml(empresa)}${nome ? ' · ' + escapeHtml(nome) : ''}</div>
       </div>
-    </div>
-    <div style="text-align:center;margin:10px 0 16px;padding:8px 0">
-      <span style="font-size:20px;font-weight:800;color:#6366f1;letter-spacing:-0.5px">Relatório por Período</span>
+      <div class="report-meta">
+        <div class="report-title">Relatório por Período</div>
+        <div class="report-sub">${periodoLabel}</div>
+      </div>
     </div>
 
     <!-- DADOS DO CLIENTE -->
@@ -3254,17 +3256,25 @@ function gerarRelatorioPDF() {
         <tbody>${linhas}</tbody>
         <tfoot>
           <tr>
-            <td colspan="4" style="text-align:right;color:#555;font-weight:400;font-size:10px">Totais do período</td>
-            <td style="color:#6366f1">${minToTime(totalMin)}</td>
+            <td colspan="4" style="text-align:right;color:#a5b4fc;font-weight:400;font-size:10px">Totais do período</td>
+            <td class="tf-total">${minToTime(totalMin)}</td>
           </tr>
         </tfoot>
       </table>
     </div>
 
     <!-- ASSINATURAS -->
-    <div class="sign-row">
-      <div class="sign-line">Assinatura do Prestador<br>${nome || empresa}</div>
-      <div class="sign-line">Assinatura do Responsável / Cliente</div>
+    <div class="sign-section">
+      <div class="sign-row">
+        <div class="sign-block"><div class="sign-line"><div class="sign-name">${escapeHtml(nome || empresa)}</div><div class="sign-role">Assinatura do Prestador de Serviços</div></div></div>
+        <div class="sign-block"><div class="sign-line"><div class="sign-name">&nbsp;</div><div class="sign-role">Assinatura do Responsável / Cliente</div></div></div>
+      </div>
+    </div>
+
+    <!-- RODAPÉ -->
+    <div class="report-footer">
+      <div class="brand-foot">Controle de <span>Horas</span> <span style="color:#9ca3af;font-weight:400"> · ${escapeHtml(empresa)}</span></div>
+      <div>Período: ${periodoLabel}</div>
     </div>
   </div>`;
   };
@@ -3276,50 +3286,58 @@ function gerarRelatorioPDF() {
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
   <title>Relatório ${periodoLabel} — ${empresa}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #111; font-size: 12px; padding: 28px 32px; }
+    body { font-family: 'Inter', Arial, sans-serif; color: #111; font-size: 12px; background: #fff; }
+    .page { padding: 32px 36px; max-width: 900px; margin: 0 auto; }
 
     /* CABEÇALHO */
-    .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 20px; }
-    .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .os-header .brand h1 span { color: #6366f1; }
-    .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
-    .os-meta { text-align: right; }
-    .os-meta .periodo { font-size: 16px; font-weight: 700; color: #6366f1; }
-    .os-meta .sub { font-size: 11px; color: #555; margin-top: 2px; }
+    .report-header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 16px; margin-bottom: 24px; border-bottom: 3px solid #6366f1; }
+    .brand h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.8px; color: #111; }
+    .brand h1 span { color: #6366f1; }
+    .brand .empresa { font-size: 11px; color: #888; margin-top: 3px; font-weight: 500; }
+    .report-meta { text-align: right; }
+    .report-meta .report-title { font-size: 18px; font-weight: 800; color: #6366f1; letter-spacing: -0.3px; }
+    .report-meta .report-sub { font-size: 11px; color: #666; margin-top: 4px; font-weight: 500; }
 
     /* SEÇÕES */
     .section { margin-bottom: 20px; }
-    .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #777; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 12px; }
+    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #6366f1; border-bottom: 2px solid #e0e7ff; padding-bottom: 6px; margin-bottom: 12px; }
 
-    /* DADOS DO CLIENTE */
+    /* CAMPOS */
     .grid { display: grid; gap: 10px; }
     .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
-    .field label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; }
+    .field label { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; font-weight: 700; }
     .field span  { font-size: 12px; font-weight: 600; color: #111; }
-
-    /* CARDS DE RESUMO */
-    .summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 10px; }
-    .summary-2 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
-    .kpi { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; }
-    .kpi .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
-    .kpi .val { font-size: 18px; font-weight: 700; color: #111; }
-    .kpi.accent .val { color: #6366f1; }
-    .kpi.green  .val { color: #16a34a; }
 
     /* TABELA */
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    thead th { background: #f5f5f5; border: 1px solid #e0e0e0; padding: 7px 8px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #555; }
-    tbody td { border: 1px solid #eee; padding: 7px 8px; vertical-align: middle; }
-    tbody tr:nth-child(even) td { background: #fafafa; }
-    tbody tr:last-child td { border-bottom: 1px solid #ddd; }
-    tfoot td { border: 1px solid #e0e0e0; padding: 8px; font-weight: 700; background: #f5f5f5; font-size: 11px; }
+    thead tr { background: #6366f1; }
+    thead th { padding: 9px 10px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #fff; border: none; }
+    tbody tr { border-bottom: 1px solid #f0f0f0; }
+    tbody tr:nth-child(even) { background: #f9fafb; }
+    tbody tr:last-child { border-bottom: 2px solid #e5e7eb; }
+    tbody td { padding: 8px 10px; vertical-align: middle; color: #374151; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    tbody td:first-child { font-family: 'Inter', sans-serif; font-weight: 600; color: #111; }
+    tbody td.accent { color: #4f46e5; font-weight: 700; }
+    tfoot tr { background: #1e1b4b; }
+    tfoot td { padding: 10px; font-weight: 700; font-size: 11px; color: #fff; border: none; }
+    tfoot .tf-total { color: #a5b4fc; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
 
     /* ASSINATURAS */
-    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; }
-    .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
+    .sign-section { margin-top: 44px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+    .sign-block { text-align: center; }
+    .sign-line { border-top: 1.5px solid #374151; padding-top: 8px; }
+    .sign-name { font-size: 11px; font-weight: 700; color: #111; }
+    .sign-role { font-size: 9px; color: #9ca3af; margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    @media print { body { padding: 16px 20px; } @page { margin: 0; } }
+    /* RODAPÉ */
+    .report-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #ccc; }
+    .report-footer .brand-foot { font-size: 11px; font-weight: 900; color: #374151; letter-spacing: -0.3px; }
+    .report-footer .brand-foot span { color: #6366f1; }
+
+    @media print { body { background: #fff; } .page { padding: 16px 20px; } @page { margin: 0; size: A4 portrait; } thead { display: table-header-group; } }
   </style></head><body>
 ${paginasHtml}
   <scr` + `ipt>window.onload = () => setTimeout(() => window.print(), 300);</scr` + `ipt>
@@ -3374,62 +3392,60 @@ function imprimirOS(id) {
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
   <title>OS #${osNum} — ${nomeCliente}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #111; font-size: 12px; padding: 28px 32px; }
+    body { font-family: 'Inter', Arial, sans-serif; color: #111; font-size: 12px; background: #fff; }
+    .page-wrap { padding: 32px 36px; max-width: 900px; margin: 0 auto; }
     /* cabeçalho */
-    .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 18px; }
-    .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .os-header .brand h1 span { color: #6366f1; }
-    .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
-    .os-meta { text-align: right; }
-    .os-meta .os-num { font-size: 18px; font-weight: 700; color: #6366f1; }
-    .os-meta .os-date { font-size: 11px; color: #555; margin-top: 2px; }
+    .report-header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 16px; margin-bottom: 24px; border-bottom: 3px solid #6366f1; }
+    .brand h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.8px; color: #111; }
+    .brand h1 span { color: #6366f1; }
+    .brand .empresa { font-size: 11px; color: #888; margin-top: 3px; font-weight: 500; }
+    .report-meta { text-align: right; }
+    .report-meta .report-title { font-size: 18px; font-weight: 800; color: #6366f1; letter-spacing: -0.3px; }
+    .report-meta .report-sub { font-size: 11px; color: #666; margin-top: 4px; font-weight: 500; }
     /* seções */
-    .section { margin-bottom: 16px; }
-    .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #777; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 10px; }
+    .section { margin-bottom: 18px; }
+    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #6366f1; border-bottom: 2px solid #e0e7ff; padding-bottom: 6px; margin-bottom: 12px; }
     /* grid de campos */
     .grid { display: grid; gap: 10px; }
     .grid-2 { grid-template-columns: 1fr 1fr; }
     .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
     .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
-    .field label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; }
+    .field label { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; font-weight: 700; }
     .field span  { font-size: 12px; font-weight: 600; color: #111; }
     /* horas */
-    .hours-box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; text-align: center; }
-    .hours-box .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; }
-    .hours-box .val { font-size: 20px; font-weight: 700; color: #111; margin-top: 2px; }
-    .hours-box.accent .val { color: #6366f1; }
-    .hours-box.green  .val { color: #16a34a; }
+    .hours-box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 8px; text-align: center; background: #fafafa; }
+    .hours-box .lbl { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; white-space: nowrap; }
+    .hours-box .val { font-size: 16px; font-weight: 700; color: #111; margin-top: 2px; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+    .hours-box.accent { background: #eef2ff; border-color: #c7d2fe; }
+    .hours-box.accent .val { color: #4f46e5; }
     /* descrição */
-    .desc-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px 14px; min-height: 80px; line-height: 1.65; color: #222; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
+    .desc-box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; min-height: 80px; line-height: 1.65; color: #374151; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: #fafafa; }
     /* assinaturas */
-    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding-top: 16px; }
-    .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
-    /* rodapé fixo */
-    @page { margin-bottom: 48px; }
-    .os-footer {
-      position: fixed; bottom: 0; left: 32px; right: 32px;
-      background: #fff;
-      border-top: 1px solid #ddd;
-      padding: 6px 0;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .os-footer .brand-foot { font-size: 12px; font-weight: 900; color: #111; letter-spacing: -0.3px; }
-    .os-footer .brand-foot span { color: #6366f1; }
-    .os-footer .page-info { font-size: 9px; color: #aaa; }
-    @media print { body { padding-bottom: 40px; } }
-    @media print { body { padding: 16px 20px; } }
+    .sign-section { margin-top: 44px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+    .sign-block { text-align: center; }
+    .sign-line { border-top: 1.5px solid #374151; padding-top: 8px; }
+    .sign-name { font-size: 11px; font-weight: 700; color: #111; }
+    .sign-role { font-size: 9px; color: #9ca3af; margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    /* rodapé */
+    .report-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #ccc; }
+    .report-footer .brand-foot { font-size: 11px; font-weight: 900; color: #374151; letter-spacing: -0.3px; }
+    .report-footer .brand-foot span { color: #6366f1; }
+    @media print { body { background: #fff; } .page-wrap { padding: 16px 20px; } @page { margin: 0; size: A4 portrait; } }
   </style></head><body>
+  <div class="page-wrap">
 
   <!-- CABEÇALHO -->
-  <div class="os-header">
+  <div class="report-header">
     <div class="brand">
       <h1>Controle de <span>Horas</span></h1>
-      <small>${empresa}${nome ? ' · ' + nome : ''}</small>
+      <div class="empresa">${escapeHtml(empresa)}${nome ? ' · ' + escapeHtml(nome) : ''}</div>
     </div>
-    <div class="os-meta">
-      <div class="os-num">OS #${osNum}</div>
-      <div class="os-date">${diaSem}, ${dataFmt}</div>
+    <div class="report-meta">
+      <div class="report-title">OS #${osNum}</div>
+      <div class="report-sub">${diaSem}, ${dataFmt}</div>
     </div>
   </div>
 
@@ -3470,28 +3486,21 @@ function imprimirOS(id) {
   </div>
 
   <!-- ASSINATURAS -->
-  <div class="sign-row">
-    <div class="sign-line">Assinatura do Prestador<br>${nome || empresa}</div>
-    <div class="sign-line">Assinatura do Cliente / Responsável<br>${nomeCliente}</div>
+  <div class="sign-section">
+    <div class="sign-row">
+      <div class="sign-block"><div class="sign-line"><div class="sign-name">${escapeHtml(nome || empresa)}</div><div class="sign-role">Assinatura do Prestador de Serviços</div></div></div>
+      <div class="sign-block"><div class="sign-line"><div class="sign-name">${escapeHtml(nomeCliente)}</div><div class="sign-role">Assinatura do Responsável / Cliente</div></div></div>
+    </div>
   </div>
 
   <!-- RODAPÉ -->
-  <div class="os-footer">
-    <div class="brand-foot">Controle de <span>Horas</span> <span style="color:#aaa;font-weight:400;font-size:9px">· ${empresa}</span></div>
-    <div class="page-info" id="os-page-info">Página 1</div>
+  <div class="report-footer">
+    <div class="brand-foot">Controle de <span>Horas</span> <span style="color:#9ca3af;font-weight:400"> · ${escapeHtml(empresa)}</span></div>
+    <div>OS #${osNum} · ${diaSem}, ${dataFmt}</div>
   </div>
 
-  <scr` + `ipt>
-    window.onload = () => {
-      // tenta obter total de páginas após layout
-      setTimeout(() => {
-        const totalPages = Math.ceil(document.body.scrollHeight / (window.innerHeight || 1100));
-        const el = document.getElementById('os-page-info');
-        if (el) el.textContent = 'Página 1 / ' + (totalPages > 0 ? totalPages : 1);
-        window.print();
-      }, 300);
-    };
-  </scr` + `ipt>
+  </div>
+  <scr` + `ipt>window.onload = () => setTimeout(() => window.print(), 300);</scr` + `ipt>
   </body></html>`;
 
   const w = window.open('', '_blank');
@@ -3531,12 +3540,15 @@ function _osHtmlBody(r) {
 
   return `
   <div class="os-page">
-    <div class="os-header">
+    <div class="report-header">
       <div class="brand">
         <h1>Controle de <span>Horas</span></h1>
-        <small>${empresa}${nome ? ' · ' + nome : ''}</small>
+        <div class="empresa">${escapeHtml(empresa)}${nome ? ' · ' + escapeHtml(nome) : ''}</div>
       </div>
-
+      <div class="report-meta">
+        <div class="report-title">OS #${osNum}</div>
+        <div class="report-sub">${diaSem}, ${dataFmt}</div>
+      </div>
     </div>
     <div class="section">
       <div class="section-title">Dados do Cliente</div>
@@ -3566,9 +3578,15 @@ function _osHtmlBody(r) {
       <div class="section-title">Observações</div>
       <div class="field"><span>${obsHtml}</span></div>
     </div>
-    <div class="sign-row">
-      <div class="sign-line">Assinatura do Prestador<br>${nome || empresa}</div>
-      <div class="sign-line">Assinatura do Cliente / Responsável<br>${nomeCliente}</div>
+    <div class="sign-section">
+      <div class="sign-row">
+        <div class="sign-block"><div class="sign-line"><div class="sign-name">${escapeHtml(nome || empresa)}</div><div class="sign-role">Assinatura do Prestador de Serviços</div></div></div>
+        <div class="sign-block"><div class="sign-line"><div class="sign-name">${escapeHtml(nomeCliente)}</div><div class="sign-role">Assinatura do Responsável / Cliente</div></div></div>
+      </div>
+    </div>
+    <div class="report-footer">
+      <div class="brand-foot">Controle de <span>Horas</span> <span style="color:#9ca3af;font-weight:400"> · ${escapeHtml(empresa)}</span></div>
+      <div>OS #${osNum} · ${diaSem}, ${dataFmt}</div>
     </div>
   </div>`;
 }
@@ -3664,33 +3682,42 @@ function imprimirOSLote() {
   const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
   <title>OS em Lote — ${selecionados.length} registros</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #111; font-size: 12px; }
-    .os-page { padding: 28px 32px; page-break-after: always; min-height: 100vh; position: relative; padding-bottom: 60px; }
+    body { font-family: 'Inter', Arial, sans-serif; color: #111; font-size: 12px; background: #fff; }
+    .os-page { padding: 32px 36px; page-break-after: always; min-height: 100vh; }
     .os-page:last-child { page-break-after: avoid; }
-    .os-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 18px; }
-    .os-header .brand h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
-    .os-header .brand h1 span { color: #6366f1; }
-    .os-header .brand small { font-size: 10px; color: #777; display: block; margin-top: 2px; }
-    .os-meta { text-align: right; }
-    .os-meta .os-num { font-size: 18px; font-weight: 700; color: #6366f1; }
-    .os-meta .os-date { font-size: 11px; color: #555; margin-top: 2px; }
-    .section { margin-bottom: 16px; }
-    .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #777; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 10px; }
+    .report-header { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 16px; margin-bottom: 24px; border-bottom: 3px solid #6366f1; }
+    .brand h1 { font-size: 26px; font-weight: 900; letter-spacing: -0.8px; color: #111; }
+    .brand h1 span { color: #6366f1; }
+    .brand .empresa { font-size: 11px; color: #888; margin-top: 3px; font-weight: 500; }
+    .report-meta { text-align: right; }
+    .report-meta .report-title { font-size: 18px; font-weight: 800; color: #6366f1; letter-spacing: -0.3px; }
+    .report-meta .report-sub { font-size: 11px; color: #666; margin-top: 4px; font-weight: 500; }
+    .section { margin-bottom: 18px; }
+    .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #6366f1; border-bottom: 2px solid #e0e7ff; padding-bottom: 6px; margin-bottom: 12px; }
     .grid { display: grid; gap: 10px; }
     .grid-2 { grid-template-columns: 1fr 1fr; }
     .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
     .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
-    .field label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; }
+    .field label { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 2px; font-weight: 700; }
     .field span  { font-size: 12px; font-weight: 600; color: #111; }
-    .hours-box { border: 1px solid #ddd; border-radius: 6px; padding: 10px 14px; text-align: center; }
-    .hours-box .lbl { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.6px; }
-    .hours-box .val { font-size: 20px; font-weight: 700; color: #111; margin-top: 2px; }
-    .hours-box.accent .val { color: #6366f1; }
-    .desc-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px 14px; min-height: 80px; line-height: 1.65; color: #222; font-size: 12px; white-space: pre-wrap; word-break: break-word; }
-    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 36px; padding-top: 16px; }
-    .sign-line { border-top: 1px solid #111; padding-top: 6px; text-align: center; font-size: 10px; color: #555; }
-    @media print { @page { margin: 0; } body { -webkit-print-color-adjust: exact; } }
+    .hours-box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 8px; text-align: center; background: #fafafa; }
+    .hours-box .lbl { font-size: 9px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; white-space: nowrap; }
+    .hours-box .val { font-size: 16px; font-weight: 700; color: #111; margin-top: 2px; font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+    .hours-box.accent { background: #eef2ff; border-color: #c7d2fe; }
+    .hours-box.accent .val { color: #4f46e5; }
+    .desc-box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; min-height: 80px; line-height: 1.65; color: #374151; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: #fafafa; }
+    .sign-section { margin-top: 44px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+    .sign-row { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+    .sign-block { text-align: center; }
+    .sign-line { border-top: 1.5px solid #374151; padding-top: 8px; }
+    .sign-name { font-size: 11px; font-weight: 700; color: #111; }
+    .sign-role { font-size: 9px; color: #9ca3af; margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .report-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #ccc; }
+    .report-footer .brand-foot { font-size: 11px; font-weight: 900; color: #374151; letter-spacing: -0.3px; }
+    .report-footer .brand-foot span { color: #6366f1; }
+    @media print { body { background: #fff; -webkit-print-color-adjust: exact; } @page { margin: 0; size: A4 portrait; } }
   </style></head><body>
   ${corpos}
   <scr` + `ipt>window.onload = () => setTimeout(() => window.print(), 300);</scr` + `ipt>
