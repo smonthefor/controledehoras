@@ -2516,10 +2516,10 @@ function renderRegistros() {
       <td>${r.obs ? `<span class="badge ${obsClass}">${r.obs}</span>` : ''}</td>
       <td>
         <div class="actions">
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="visualizarRegistro(${r.id})" title="Visualizar">👁️</button>
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="imprimirOS(${r.id})" title="Imprimir OS">🖨️</button>
           <button class="btn btn-secondary btn-sm btn-icon" onclick="copiarRegistro(${r.id})" title="Copiar registro">📋</button>
           <button class="btn btn-secondary btn-sm btn-icon" onclick="abrirEdicao(${r.id})" title="Editar">✏️</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="visualizarRegistro(${r.id})" title="Visualizar">👁️</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="imprimirOS(${r.id})" title="Imprimir OS">🖨️</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="excluirRegistro(${r.id})" title="Excluir">🗑</button>
         </div>
       </td>
