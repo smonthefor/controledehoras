@@ -828,10 +828,16 @@
       </div>
       <div class="table-wrap">
         <div id="reg-totais" style="display:flex;gap:12px;margin-bottom:16px"></div>
+        <div id="bulk-toolbar" style="display:none;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">
+          <span id="bulk-count" style="font-size:13px;color:var(--text2)"></span>
+          <button class="btn btn-danger btn-sm" onclick="excluirEmMassa()">🗑 Excluir selecionados</button>
+          <button class="btn btn-secondary btn-sm" onclick="limparSelecao()">Cancelar</button>
+        </div>
         <table>
           <thead>
             <tr>
-              <th>OS</th><th>Data</th><th>Dia</th><th>P1 Início</th><th>P1 Fim</th><th>P2 Início</th><th>P2 Fim</th><th>Translado</th><th>Total</th><th>Extra</th><th>Aliment.</th><th>Transp.</th><th>Clientes</th><th>Obs</th><th>Ações</th>
+              <th style="width:36px"><input type="checkbox" id="check-all" onchange="toggleSelecionarTodos(this.checked)" title="Selecionar todos"></th>
+              <th style="white-space:nowrap">OS</th><th class="sortable" onclick="sortBy('data')" style="white-space:nowrap">Data</th><th style="white-space:nowrap">Dia</th><th style="white-space:nowrap">P1 Início</th><th style="white-space:nowrap">P1 Fim</th><th style="white-space:nowrap">P2 Início</th><th style="white-space:nowrap">P2 Fim</th><th style="white-space:nowrap">Translado</th><th style="white-space:nowrap">Total</th><th style="white-space:nowrap">Extra</th><th style="white-space:nowrap">Aliment.</th><th style="white-space:nowrap">Transp.</th><th style="white-space:nowrap">Clientes</th><th style="white-space:nowrap">Obs</th><th style="white-space:nowrap;text-align:center">Ações</th>
             </tr>
           </thead>
           <tbody id="tbody-registros"></tbody>
@@ -2439,6 +2445,11 @@ function sortRegistros(col) {
 // REGISTROS
 // ============================================================
 function renderRegistros() {
+  // limpar seleção em massa
+  const toolbar = document.getElementById('bulk-toolbar');
+  if (toolbar) toolbar.style.display = 'none';
+  const checkAll = document.getElementById('check-all');
+  if (checkAll) { checkAll.checked = false; checkAll.indeterminate = false; }
   // preencher filtro anos
   const selAno = document.getElementById('filtro-ano');
   const anosExistentes = [...new Set(db.registros.map(r => r.data.slice(0,4)))].sort();
@@ -2517,11 +2528,12 @@ function renderRegistros() {
   };
 
   document.querySelector('#view-registros thead tr').innerHTML =
+    `<th style="width:36px"><input type="checkbox" id="check-all" onchange="toggleSelecionarTodos(this.checked)" title="Selecionar todos"></th>` +
     thSort('os','OS') +
     thSort('data','Data') +
-    `<th>Dia</th><th>P1 Início</th><th>P1 Fim</th><th>P2 Início</th><th>P2 Fim</th><th>Translado</th><th>Total</th><th>Extra</th><th>Aliment.</th><th>Transp.</th>` +
+    `<th style="white-space:nowrap">Dia</th><th style="white-space:nowrap">P1 Início</th><th style="white-space:nowrap">P1 Fim</th><th style="white-space:nowrap">P2 Início</th><th style="white-space:nowrap">P2 Fim</th><th style="white-space:nowrap">Translado</th><th style="white-space:nowrap">Total</th><th style="white-space:nowrap">Extra</th><th style="white-space:nowrap">Aliment.</th><th style="white-space:nowrap">Transp.</th>` +
     thSort('clientes','Clientes') +
-    `<th>Obs</th><th>Ações</th>`;
+    `<th style="white-space:nowrap">Obs</th><th style="white-space:nowrap;text-align:center">Ações</th>`;
 
   tbody.innerHTML = regs.map(r => {
     const tot = calcTotal(r.p1i,r.p1f,r.p2i,r.p2f,r.tsl);
@@ -2530,8 +2542,9 @@ function renderRegistros() {
     const extraClass = extra > 0 ? 'text-green' : (extra < 0 ? '' : 'text-muted');
     const extraStyle = extra < 0 ? 'color:var(--red)' : '';
     const obsClass = r.obs && ['FERIADO','FÉRIAS','FERIAS'].some(k => r.obs.toUpperCase().includes(k)) ? 'badge-yellow' : 'badge-gray';
-    return `<tr class="${r.concluido ? 'row-concluido' : ''}">
-      <td class="mono" style="color:var(--accent-hover);font-size:11px;font-weight:700">${r.os ? '#' + String(r.os).padStart(6,'0') : '—'}${r.concluido ? ' <span class="badge badge-green" title="Apontamento concluído" style="margin-left:4px">✔ Concluído</span>' : ''}</td>
+    return `<tr class="${r.concluido ? 'row-concluido' : ''}" data-id="${r.id}">
+      <td style="width:36px"><input type="checkbox" class="row-check" data-id="${r.id}" ${r.concluido ? 'disabled title="Concluído não pode ser excluído"' : ''} onchange="atualizarSelecao()"></td>
+      <td class="mono" style="color:var(--accent-hover);font-size:11px;font-weight:700">${r.os ? '#' + String(r.os).padStart(6,'0') : '—'}</td>
       <td>${formatDate(r.data)}</td>
       <td><span class="badge badge-gray">${getDiaSemana(r.data)}</span></td>
       <td class="mono">${r.p1i}</td><td class="mono">${r.p1f}</td>
@@ -2543,8 +2556,8 @@ function renderRegistros() {
       <td class="mono">R$ ${(r.transp||0).toFixed(2)}</td>
       <td>${r.clientes ? `<span class="badge badge-blue">${r.clientes}</span>` : '<span class="text-muted">—</span>'}</td>
       <td>${r.obs ? `<span class="badge ${obsClass}">${r.obs}</span>` : ''}</td>
-      <td>
-        <div class="actions">
+      <td style="text-align:center">
+        <div class="actions" style="justify-content:center">
           <button class="btn btn-secondary btn-sm btn-icon" onclick="copiarRegistro(${r.id})" title="Copiar registro">📋</button>
           <button class="btn btn-secondary btn-sm btn-icon" onclick="abrirEdicao(${r.id})" title="Editar">✏️</button>
           <button class="btn btn-secondary btn-sm btn-icon" onclick="visualizarRegistro(${r.id})" title="Visualizar">👁️</button>
@@ -2745,6 +2758,50 @@ async function desconcluirRegistro(id) {
   r.concluido = false;
   salvarDB();
   toast('Conclusão desfeita');
+  renderRegistros();
+}
+
+function atualizarSelecao() {
+  const checks = document.querySelectorAll('.row-check:not([disabled])');
+  const selecionados = document.querySelectorAll('.row-check:checked');
+  const toolbar = document.getElementById('bulk-toolbar');
+  const countEl = document.getElementById('bulk-count');
+  const checkAll = document.getElementById('check-all');
+  if (selecionados.length > 0) {
+    toolbar.style.display = 'flex';
+    countEl.textContent = `${selecionados.length} registro${selecionados.length > 1 ? 's' : ''} selecionado${selecionados.length > 1 ? 's' : ''}`;
+  } else {
+    toolbar.style.display = 'none';
+  }
+  checkAll.indeterminate = selecionados.length > 0 && selecionados.length < checks.length;
+  checkAll.checked = checks.length > 0 && selecionados.length === checks.length;
+}
+
+function toggleSelecionarTodos(checked) {
+  document.querySelectorAll('.row-check:not([disabled])').forEach(c => c.checked = checked);
+  atualizarSelecao();
+}
+
+function limparSelecao() {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = false);
+  const checkAll = document.getElementById('check-all');
+  if (checkAll) { checkAll.checked = false; checkAll.indeterminate = false; }
+  document.getElementById('bulk-toolbar').style.display = 'none';
+}
+
+async function excluirEmMassa() {
+  const selecionados = [...document.querySelectorAll('.row-check:checked')].map(c => Number(c.dataset.id));
+  if (selecionados.length === 0) return;
+  const ok = await confirmDialog(
+    `Excluir ${selecionados.length} registro${selecionados.length > 1 ? 's' : ''}? Esta ação não pode ser desfeita.`,
+    'Excluir em massa',
+    `Excluir ${selecionados.length}`,
+    {danger: true}
+  );
+  if (!ok) return;
+  db.registros = db.registros.filter(r => !selecionados.includes(r.id));
+  salvarDB();
+  toast(`${selecionados.length} registro${selecionados.length > 1 ? 's excluídos' : ' excluído'}`);
   renderRegistros();
 }
 
