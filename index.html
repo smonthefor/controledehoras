@@ -830,6 +830,8 @@
         <div id="reg-totais" style="display:flex;gap:12px;margin-bottom:16px"></div>
         <div id="bulk-toolbar" style="display:none;align-items:center;gap:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">
           <span id="bulk-count" style="font-size:13px;color:var(--text2)"></span>
+          <button class="btn btn-success btn-sm" onclick="concluirEmMassa()">✔ Concluir selecionados</button>
+          <button class="btn btn-secondary btn-sm" onclick="desfazerConclusaoEmMassa()">↩ Desfazer conclusão</button>
           <button class="btn btn-danger btn-sm" onclick="excluirEmMassa()">🗑 Excluir selecionados</button>
           <button class="btn btn-secondary btn-sm" onclick="limparSelecao()">Cancelar</button>
         </div>
@@ -2802,6 +2804,62 @@ async function excluirEmMassa() {
   db.registros = db.registros.filter(r => !selecionados.includes(r.id));
   salvarDB();
   toast(`${selecionados.length} registro${selecionados.length > 1 ? 's excluídos' : ' excluído'}`);
+  renderRegistros();
+}
+
+async function concluirEmMassa() {
+  const selecionados = [...document.querySelectorAll('.row-check:checked')].map(c => Number(c.dataset.id));
+  if (selecionados.length === 0) return;
+  const pendentes = selecionados.filter(id => {
+    const r = db.registros.find(x => x.id === id);
+    return r && !r.concluido;
+  });
+  if (pendentes.length === 0) {
+    toast('Todos os registros selecionados já estão concluídos', 'error');
+    return;
+  }
+  const ok = await confirmDialog(
+    `Confirmar ${pendentes.length} registro${pendentes.length > 1 ? 's' : ''}? Registros já concluídos serão ignorados.`,
+    'Concluir em massa',
+    `Concluir ${pendentes.length}`,
+    {}
+  );
+  if (!ok) return;
+  pendentes.forEach(id => {
+    const r = db.registros.find(x => x.id === id);
+    if (r) r.concluido = true;
+  });
+  salvarDB();
+  toast(`${pendentes.length} registro${pendentes.length > 1 ? 's concluídos' : ' concluído'}`, 'success');
+  limparSelecao();
+  renderRegistros();
+}
+
+async function desfazerConclusaoEmMassa() {
+  const selecionados = [...document.querySelectorAll('.row-check:checked')].map(c => Number(c.dataset.id));
+  if (selecionados.length === 0) return;
+  const concluidos = selecionados.filter(id => {
+    const r = db.registros.find(x => x.id === id);
+    return r && r.concluido;
+  });
+  if (concluidos.length === 0) {
+    toast('Nenhum dos registros selecionados está concluído', 'error');
+    return;
+  }
+  const ok = await confirmDialog(
+    `Desfazer a conclusão de ${concluidos.length} registro${concluidos.length > 1 ? 's' : ''}? Eles voltarão a ser editáveis. Registros não concluídos serão ignorados.`,
+    'Desfazer conclusão em massa',
+    `Desfazer ${concluidos.length}`,
+    {danger: true}
+  );
+  if (!ok) return;
+  concluidos.forEach(id => {
+    const r = db.registros.find(x => x.id === id);
+    if (r) r.concluido = false;
+  });
+  salvarDB();
+  toast(`${concluidos.length} conclus${concluidos.length > 1 ? 'ões desfeitas' : 'ão desfeita'}`, 'success');
+  limparSelecao();
   renderRegistros();
 }
 
