@@ -202,6 +202,8 @@
   .badge-yellow { background: rgba(245,158,11,0.12); color: var(--yellow); border: 1px solid rgba(245,158,11,0.25); }
   .badge-red { background: rgba(239,68,68,0.12); color: var(--red-light); border: 1px solid rgba(239,68,68,0.25); }
   .badge-gray { background: rgba(90,99,128,0.15); color: var(--muted); border: 1px solid rgba(90,99,128,0.2); }
+  tr.row-concluido { background: rgba(16,185,129,0.035); }
+  tr.row-concluido:hover { background: rgba(16,185,129,0.07) !important; }
   thead th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
   thead th.sortable:hover { color: var(--text2); background: var(--surface3); }
   thead th.sort-asc::after  { content: ' ↑'; color: var(--accent-hover); }
@@ -246,6 +248,12 @@
   .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
   .btn-danger { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
   .btn-danger:hover { background: rgba(239,68,68,0.18); }
+  .btn-success { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.25); }
+  .btn-success:hover { background: rgba(16,185,129,0.18); }
+  .btn-success.is-done { background: rgba(16,185,129,0.22); border-color: rgba(16,185,129,0.45); }
+  .btn-success.is-done:hover { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); opacity: 0.7; }
+  .btn-icon.is-done { background: rgba(16,185,129,0.18); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .btn-icon[disabled], .btn-icon.is-locked { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
   .btn-sm { padding: 6px 12px; font-size: 12px; }
   .btn-icon { padding: 6px 10px; border-radius: 6px; }
   .actions { display: flex; gap: 8px; }
@@ -1202,8 +1210,28 @@
           <h4>Limpar Banco</h4>
           <p style="color:var(--red)">Remove todos os registros</p>
         </div>
+        <div class="export-card" onclick="abrirModalNumeracaoOS()" style="grid-column: 1 / -1;">
+          <div class="eicon">🔢</div>
+          <h4>Numeração de OS</h4>
+          <p>Próxima OS: <strong id="proxima-os-label">#------</strong> · Clique para redefinir</p>
+        </div>
       </div>
       <input type="file" id="import-file" accept=".json" style="display:none" onchange="importarArquivo(event)">
+
+      <!-- Modal Numeração OS -->
+      <div id="modal-numeracao-os" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2000;align-items:center;justify-content:center;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 32px;width:360px;max-width:90vw;">
+          <h3 style="margin:0 0 6px">Numeração de OS</h3>
+          <p style="margin:0 0 20px;color:var(--text-muted);font-size:13px">Define a partir de qual número a próxima OS será gerada.</p>
+          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:6px">PRÓXIMA OS</label>
+          <input id="input-proxima-os" type="number" min="1" step="1"
+            style="width:100%;box-sizing:border-box;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;margin-bottom:20px">
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button class="btn btn-secondary" onclick="fecharModalNumeracaoOS()">Cancelar</button>
+            <button class="btn btn-primary" onclick="salvarNumeracaoOS()">Salvar</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- CONFIG -->
@@ -1470,7 +1498,7 @@
     <p id="confirm-msg" style="color:var(--muted);font-size:13px;line-height:1.5"></p>
     <div class="modal-footer">
       <button class="btn btn-secondary" id="confirm-cancel">Cancelar</button>
-      <button class="btn btn-danger" id="confirm-ok">Confirmar</button>
+      <button class="btn btn-success" id="confirm-ok">Confirmar</button>
     </div>
   </div>
 </div>
@@ -1756,7 +1784,7 @@ async function esqueciSenha() {
 }
 
 async function fazerLogout() {
-  const ok = await confirmDialog('Sair da conta? A sincronização será interrompida neste dispositivo (os dados continuam salvos na nuvem).', 'Sair', 'Sair');
+  const ok = await confirmDialog('Sair da conta? A sincronização será interrompida neste dispositivo (os dados continuam salvos na nuvem).', 'Sair', 'Sair', {danger:true});
   if (!ok) return;
   if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
   const fb = window.__firebase;
@@ -1883,7 +1911,7 @@ function showView(name) {
   if (name === 'registros') renderRegistros();
   if (name === 'clientes') renderClientes();
   if (name === 'consultoria') renderConsultoria();
-  if (name === 'exportar') initPdfSelects();
+  if (name === 'exportar') { initPdfSelects(); atualizarLabelProximaOS(); }
   if (name === 'faturamento') { initFaturamento(); renderFaturamento(); }
   if (name === 'relatorios') {
     initRelatorios();
@@ -1920,6 +1948,7 @@ function confirmDialog(msg, title='Confirmar ação', okLabel='Confirmar', opts=
     const okBtn = document.getElementById('confirm-ok');
     const cancelBtn = document.getElementById('confirm-cancel');
     okBtn.textContent = okLabel;
+    okBtn.className = `btn ${opts.danger ? 'btn-danger' : 'btn-success'}`;
     cancelBtn.style.display = opts.hideCancel ? 'none' : '';
 
     function close(result) {
@@ -2184,7 +2213,7 @@ async function salvarApontamento() {
 
   const idxDup = idx >= 0 ? idx : (idxCodigo >= 0 ? idxCodigo : idxNome);
   if (idxDup >= 0) {
-    const ok = await confirmDialog('Já existe um apontamento para este cliente nesta data. Deseja substituir?', 'Substituir registro', 'Substituir');
+    const ok = await confirmDialog('Já existe um apontamento para este cliente nesta data. Deseja substituir?', 'Substituir registro', 'Substituir', {danger:true});
     if (!ok) return;
     reg.id = db.registros[idxDup].id;
     reg.os = db.registros[idxDup].os; // preserva o número de OS original
@@ -2501,8 +2530,8 @@ function renderRegistros() {
     const extraClass = extra > 0 ? 'text-green' : (extra < 0 ? '' : 'text-muted');
     const extraStyle = extra < 0 ? 'color:var(--red)' : '';
     const obsClass = r.obs && ['FERIADO','FÉRIAS','FERIAS'].some(k => r.obs.toUpperCase().includes(k)) ? 'badge-yellow' : 'badge-gray';
-    return `<tr>
-      <td class="mono" style="color:var(--accent-hover);font-size:11px;font-weight:700">${r.os ? '#' + String(r.os).padStart(6,'0') : '—'}</td>
+    return `<tr class="${r.concluido ? 'row-concluido' : ''}">
+      <td class="mono" style="color:var(--accent-hover);font-size:11px;font-weight:700">${r.os ? '#' + String(r.os).padStart(6,'0') : '—'}${r.concluido ? ' <span class="badge badge-green" title="Apontamento concluído" style="margin-left:4px">✔ Concluído</span>' : ''}</td>
       <td>${formatDate(r.data)}</td>
       <td><span class="badge badge-gray">${getDiaSemana(r.data)}</span></td>
       <td class="mono">${r.p1i}</td><td class="mono">${r.p1f}</td>
@@ -2520,7 +2549,10 @@ function renderRegistros() {
           <button class="btn btn-secondary btn-sm btn-icon" onclick="abrirEdicao(${r.id})" title="Editar">✏️</button>
           <button class="btn btn-secondary btn-sm btn-icon" onclick="visualizarRegistro(${r.id})" title="Visualizar">👁️</button>
           <button class="btn btn-secondary btn-sm btn-icon" onclick="imprimirOS(${r.id})" title="Imprimir OS">🖨️</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="excluirRegistro(${r.id})" title="Excluir">🗑</button>
+          ${r.concluido
+            ? `<button class="btn btn-success btn-sm btn-icon is-done" onclick="desconcluirRegistro(${r.id})" title="Clique para desfazer conclusão">✔️</button>`
+            : `<button class="btn btn-success btn-sm btn-icon" onclick="concluirRegistro(${r.id})" title="Marcar como concluído">✔️</button>`}
+          <button class="btn btn-danger btn-sm btn-icon${r.concluido ? ' is-locked' : ''}" ${r.concluido ? 'disabled' : ''} onclick="excluirRegistro(${r.id})" title="${r.concluido ? 'Registro concluído não pode ser excluído' : 'Excluir'}">🗑</button>
         </div>
       </td>
     </tr>`;
@@ -2684,8 +2716,45 @@ function salvarEdicao() {
   renderRegistros();
 }
 
+async function concluirRegistro(id) {
+  const r = db.registros.find(x => x.id === id);
+  if (!r) return;
+  if (r.concluido) return;
+  const ok = await confirmDialog(
+    'Marcar este apontamento como concluído? Depois disso ele não poderá mais ser excluído.',
+    'Concluir apontamento',
+    'Concluir'
+  );
+  if (!ok) return;
+  r.concluido = true;
+  salvarDB();
+  toast('Apontamento marcado como concluído');
+  renderRegistros();
+}
+
+async function desconcluirRegistro(id) {
+  const r = db.registros.find(x => x.id === id);
+  if (!r || !r.concluido) return;
+  const ok = await confirmDialog(
+    'Desfazer a conclusão deste apontamento? Ele voltará a ser editável e poderá ser excluído.',
+    'Desfazer conclusão',
+    'Desfazer',
+    {danger:true}
+  );
+  if (!ok) return;
+  r.concluido = false;
+  salvarDB();
+  toast('Conclusão desfeita');
+  renderRegistros();
+}
+
 async function excluirRegistro(id) {
-  const ok = await confirmDialog('Excluir este registro?', 'Excluir registro', 'Excluir');
+  const r = db.registros.find(x => x.id === id);
+  if (r && r.concluido) {
+    toast('Apontamento concluído não pode ser excluído', 'error');
+    return;
+  }
+  const ok = await confirmDialog('Excluir este registro?', 'Excluir registro', 'Excluir', {danger:true});
   if (!ok) return;
   db.registros = db.registros.filter(r => r.id !== id);
   salvarDB();
@@ -2868,7 +2937,7 @@ async function excluirCliente(id) {
     return;
   }
 
-  const ok = await confirmDialog(`Excluir o cliente "${c.nome}"? Esta ação não pode ser desfeita.`, 'Excluir cliente', 'Excluir');
+  const ok = await confirmDialog(`Excluir o cliente "${c.nome}"? Esta ação não pode ser desfeita.`, 'Excluir cliente', 'Excluir', {danger:true});
   if (!ok) return;
   db.clientes = db.clientes.filter(x => x.id !== id);
   salvarDB();
@@ -3020,7 +3089,7 @@ async function excluirConsultoria(id) {
     return;
   }
 
-  const ok = await confirmDialog(`Excluir a consultoria "${c.nome}"? Esta ação não pode ser desfeita.`, 'Excluir consultoria', 'Excluir');
+  const ok = await confirmDialog(`Excluir a consultoria "${c.nome}"? Esta ação não pode ser desfeita.`, 'Excluir consultoria', 'Excluir', {danger:true});
   if (!ok) return;
   db.consultorias = db.consultorias.filter(x => x.id !== id);
   salvarDB();
@@ -4108,8 +4177,34 @@ function gerarRelatorioApontamentosPDF() {
 }
 
 // ============================================================
+function abrirModalNumeracaoOS() {
+  const atual = db.config.proximaOS || 1;
+  document.getElementById('input-proxima-os').value = atual;
+  const modal = document.getElementById('modal-numeracao-os');
+  modal.style.display = 'flex';
+}
+
+function fecharModalNumeracaoOS() {
+  document.getElementById('modal-numeracao-os').style.display = 'none';
+}
+
+function salvarNumeracaoOS() {
+  const val = parseInt(document.getElementById('input-proxima-os').value, 10);
+  if (!val || val < 1) { toast('Valor inválido', 'error'); return; }
+  db.config.proximaOS = val;
+  salvarDB();
+  atualizarLabelProximaOS();
+  fecharModalNumeracaoOS();
+  toast(`Próxima OS definida como #${String(val).padStart(6,'0')}`, 'success');
+}
+
+function atualizarLabelProximaOS() {
+  const el = document.getElementById('proxima-os-label');
+  if (el) el.textContent = '#' + String(db.config.proximaOS || 1).padStart(6, '0');
+}
+
 async function limparBanco() {
-  const ok = await confirmDialog('Limpar TODOS os dados? Isso não pode ser desfeito.', 'Limpar banco de dados', 'Limpar tudo');
+  const ok = await confirmDialog('Limpar TODOS os dados? Isso não pode ser desfeito.', 'Limpar banco de dados', 'Limpar tudo', {danger:true});
   if (!ok) return;
   db.registros = [];
   salvarDB();
@@ -4153,7 +4248,7 @@ function importarArquivo(event) {
     try {
       const data = JSON.parse(e.target.result);
       if (!data.registros) throw new Error('Formato inválido');
-      const ok = await confirmDialog(`Importar ${data.registros.length} registros? Os dados atuais serão substituídos.`, 'Importar dados', 'Importar');
+      const ok = await confirmDialog(`Importar ${data.registros.length} registros? Os dados atuais serão substituídos.`, 'Importar dados', 'Importar', {danger:true});
       if (!ok) return;
       db = data;
       // Backups antigos podem não ter o cadastro de clientes no formato atual
@@ -4178,6 +4273,7 @@ function importarArquivo(event) {
 // ============================================================
 function renderAll() {
   renderDashboard();
+  atualizarLabelProximaOS();
 }
 
 // ============================================================
