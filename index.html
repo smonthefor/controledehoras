@@ -1142,11 +1142,11 @@
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:16px;margin-bottom:20px">
           <div class="form-group">
             <label>Data De</label>
-            <input type="date" id="ap-data-de" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%">
+            <input type="date" id="ap-data-de" onchange="salvarFiltroRelatorioApontamentos()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%">
           </div>
           <div class="form-group">
             <label>Data Até</label>
-            <input type="date" id="ap-data-ate" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%">
+            <input type="date" id="ap-data-ate" onchange="salvarFiltroRelatorioApontamentos()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;width:100%">
           </div>
           <div class="form-group" style="position:relative">
             <label>Cliente De</label>
@@ -1990,6 +1990,31 @@ function initForm() {
   document.getElementById('f-data').value = today;
   atualizarTotal();
   atualizarDatalist();
+  restaurarFiltroRelatorioApontamentos();
+}
+
+// ── Lembrar a última Data De / Data Até digitadas no
+// "Relatório de Apontamentos (PDF)", mesmo após fechar e reabrir o app.
+const REL_AP_DATAS_KEY = 'ch_rel_apontamentos_datas';
+
+function salvarFiltroRelatorioApontamentos() {
+  const de  = document.getElementById('ap-data-de')?.value  || '';
+  const ate = document.getElementById('ap-data-ate')?.value || '';
+  try {
+    localStorage.setItem(REL_AP_DATAS_KEY, JSON.stringify({ de, ate }));
+  } catch (e) { /* localStorage indisponível: ignora silenciosamente */ }
+}
+
+function restaurarFiltroRelatorioApontamentos() {
+  let salvo = null;
+  try {
+    salvo = JSON.parse(localStorage.getItem(REL_AP_DATAS_KEY) || 'null');
+  } catch (e) { salvo = null; }
+  if (!salvo) return;
+  const elDe  = document.getElementById('ap-data-de');
+  const elAte = document.getElementById('ap-data-ate');
+  if (elDe  && salvo.de)  elDe.value  = salvo.de;
+  if (elAte && salvo.ate) elAte.value = salvo.ate;
 }
 
 function atualizarTotal() {
@@ -4009,6 +4034,7 @@ function _filtrarRelatorioApontamentos() {
 function gerarRelatorioApontamentosPDF() {
   const dataDe  = document.getElementById('ap-data-de').value;
   const dataAte = document.getElementById('ap-data-ate').value;
+  salvarFiltroRelatorioApontamentos();
 
   if (!dataDe || !dataAte) {
     toast('Informe a Data De e a Data Até', 'error');
