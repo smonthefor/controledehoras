@@ -4040,9 +4040,10 @@ function gerarRelatorioApontamentosPDF() {
     const cli = encontrarClienteDoRegistro(r);
     const descricaoCliente = cli ? cli.nome : (r.clientes || '—');
 
+    const temP1 = !!(r.p1i && r.p1f && r.p1i !== '00:00');
     const temP2 = !!(r.p2i && r.p2f && r.p2i !== '00:00');
-    const p1i = r.p1i || '—';
-    const p1f = r.p1f || '—';
+    const p1i = temP1 ? r.p1i : '—';
+    const p1f = temP1 ? r.p1f : '—';
     const p2i = temP2 ? r.p2i : '—';
     const p2f = temP2 ? r.p2f : '—';
     const translado   = r.tsl || '00:00';
