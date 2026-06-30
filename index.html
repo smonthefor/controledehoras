@@ -1286,14 +1286,10 @@
 </div>
 
 <!-- MODAL PARÂMETROS FATURAMENTO -->
-<div class="modal-overlay" id="fat-params-overlay" onclick="if(event.target===this)fecharFatParams()">
+<div class="modal-overlay" id="fat-params-overlay">
   <div class="modal" style="width:480px;max-width:96vw">
     <h3>⚙️ Parâmetros do Cálculo</h3>
     <div class="form-grid cols2" style="margin-top:16px">
-      <div class="form-group">
-        <label>Valor Hora (R$)</label>
-        <input type="number" id="fat-vh" min="0" step="0.01" placeholder="0,00">
-      </div>
       <div class="form-group">
         <label>% Imposto</label>
         <input type="number" id="fat-imp" min="0" max="100" step="0.1" placeholder="6">
@@ -1305,10 +1301,6 @@
       <div class="form-group">
         <label>GPS (R$/mês)</label>
         <input type="number" id="fat-gps" min="0" step="0.01" placeholder="0,00">
-      </div>
-      <div class="form-group">
-        <label>Outros descontos (R$/mês)</label>
-        <input type="number" id="fat-outros" min="0" step="0.01" placeholder="0,00">
       </div>
     </div>
     <div class="form-footer" style="margin-top:20px">
@@ -4724,6 +4716,13 @@ function fecharFatParams() {
   document.getElementById('fat-params-overlay').classList.remove('open');
 }
 function aplicarFatParams() {
+  // Persiste os parâmetros no banco de dados (db.config) para que não se
+  // percam ao recarregar/entrar e sair do programa.
+  db.config.percImposto   = parseFloat(document.getElementById('fat-imp').value)      || 0;
+  db.config.custoContador = parseFloat(document.getElementById('fat-contador').value) || 0;
+  db.config.custosExtras  = parseFloat(document.getElementById('fat-gps').value)      || 0;
+  salvarDB();
+
   fecharFatParams();
   renderFaturamento();
 }
@@ -4777,22 +4776,19 @@ function valorHoraDoRegistro(r, fallbackVh) {
 }
 
 function initFaturamento() {
-  document.getElementById('fat-vh').value       = db.config.valorHora      || 0;
   document.getElementById('fat-contador').value = db.config.custoContador  || 0;
   document.getElementById('fat-gps').value      = db.config.custosExtras   || 0;
   document.getElementById('fat-imp').value      = db.config.percImposto    ?? 6;
-  document.getElementById('fat-outros').value   = 0;
 }
 
 function renderFaturamento() {
   document.getElementById('fat-ano-label').textContent = fatAno;
   document.getElementById('fat-subtitle').textContent  = 'Ano ' + fatAno;
 
-  const vh       = parseFloat(document.getElementById('fat-vh').value)       || 0;
+  const vh       = db.config.valorHora || 0;
   const percImp  = parseFloat(document.getElementById('fat-imp').value)      || 0;
   const contador = parseFloat(document.getElementById('fat-contador').value) || 0;
   const gps      = parseFloat(document.getElementById('fat-gps').value)      || 0;
-  const outros   = parseFloat(document.getElementById('fat-outros').value)   || 0;
 
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
                  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -4825,7 +4821,7 @@ function renderFaturamento() {
     const imp     = fat * (percImp / 100);
     const contM   = minMes > 0 ? contador : 0;
     const gpsM    = minMes > 0 ? gps      : 0;
-    const liq     = fat - imp - contM - gpsM - (minMes > 0 ? outros : 0);
+    const liq     = fat - imp - contM - gpsM;
 
     totMin   += minMes;
     totFat   += fat;
