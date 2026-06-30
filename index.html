@@ -3433,7 +3433,7 @@ function gerarRelatorioPDF() {
       const extraCor = extra > 0 ? '#16a34a' : extra < 0 ? '#dc2626' : '#888';
       return `<tr>
         <td>${formatDate(r.data)}</td>
-        <td>${r.p1i} – ${r.p1f}</td>
+        <td>${r.p1i && r.p1i!=='00:00' ? r.p1i+' – '+r.p1f : '—'}</td>
         <td>${r.p2i && r.p2i!=='00:00' ? r.p2i+' – '+r.p2f : '—'}</td>
         <td>${r.tsl||'00:00'}</td>
         <td class="accent">${minToTime(tot)}</td>
