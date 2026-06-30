@@ -4041,9 +4041,10 @@ function gerarRelatorioApontamentosPDF() {
     const descricaoCliente = cli ? cli.nome : (r.clientes || '—');
 
     const temP2 = !!(r.p2i && r.p2f && r.p2i !== '00:00');
-    const hrInicial = r.p1i || '—';
-    const hrFinal    = temP2 ? r.p2f : r.p1f;
-    const descontoMin = temP2 ? Math.max(0, timeToMin(r.p2i) - timeToMin(r.p1f)) : 0;
+    const p1i = r.p1i || '—';
+    const p1f = r.p1f || '—';
+    const p2i = temP2 ? r.p2i : '—';
+    const p2f = temP2 ? r.p2f : '—';
     const translado   = r.tsl || '00:00';
     const totalMinReg  = calcTotal(r.p1i, r.p1f, r.p2i, r.p2f, r.tsl);
     const vhReg = valorHoraDoRegistro(r, vhPadrao);
@@ -4064,9 +4065,10 @@ function gerarRelatorioApontamentosPDF() {
       <td class="td-data">${formatDate(r.data)}</td>
       <td class="mono" style="color:#555;font-size:10px">${r.codigo || '—'}</td>
       <td class="td-cli">${escapeHtml(descricaoCliente)}</td>
-      <td class="center mono">${hrInicial}</td>
-      <td class="center mono">${hrFinal || '—'}</td>
-      <td class="center mono" style="color:#888">${minToTime(descontoMin)}</td>
+      <td class="center mono">${p1i}</td>
+      <td class="center mono">${p1f}</td>
+      <td class="center mono">${p2i}</td>
+      <td class="center mono">${p2f}</td>
       <td class="center mono" style="color:#888">${translado}</td>
       <td class="center td-total">${minToTime(totalMinReg)}</td>
       ${colunaValor}
@@ -4228,9 +4230,10 @@ function gerarRelatorioApontamentosPDF() {
             <th>Data</th>
             <th>Código</th>
             <th>Cliente</th>
-            <th class="center">Hr. Inicial</th>
-            <th class="center">Hr. Final</th>
-            <th class="center">Desconto</th>
+            <th class="center">P1 Início</th>
+            <th class="center">P1 Fim</th>
+            <th class="center">P2 Início</th>
+            <th class="center">P2 Fim</th>
             <th class="center">Traslado</th>
             <th class="center">Total</th>
             ${mostrarValor ? `<th class="right">Valor (R$)</th>` : ''}
@@ -4239,7 +4242,7 @@ function gerarRelatorioApontamentosPDF() {
         <tbody>${linhas}</tbody>
         <tfoot>
           <tr>
-            <td colspan="${mostrarValor ? 8 : 8}" style="text-align:right;color:#a5b4fc;font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Total Geral</td>
+            <td colspan="${mostrarValor ? 9 : 9}" style="text-align:right;color:#a5b4fc;font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Total Geral</td>
             <td class="center tf-total">${minToTime(totalMin)}</td>
             ${mostrarValor ? `<td class="right tf-valor">${fmtBRL(totalValor)}</td>` : ''}
           </tr>
